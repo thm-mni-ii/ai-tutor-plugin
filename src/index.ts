@@ -3,7 +3,6 @@ import {
   JupyterFrontEndPlugin
 } from '@jupyterlab/application';
 
-import axios from 'axios';
 import { Widget } from '@lumino/widgets';
 import { LabIcon } from '@jupyterlab/ui-components';
 import { ILayoutRestorer } from '@jupyterlab/application';
@@ -11,8 +10,6 @@ import { NotebookPanel, INotebookTracker } from '@jupyterlab/notebook';
 import { DocumentRegistry } from '@jupyterlab/docregistry';
 import { IDisposable } from '@lumino/disposable';
 import { ToolbarButton } from '@jupyterlab/apputils';
-import JSZip from 'jszip';
-import { ContentsManager } from '@jupyterlab/services';
 import { Contents } from '@jupyterlab/services';
 
 import { sendRequest, generatePromptWithSolution } from './utils/util';
@@ -20,19 +17,7 @@ import { sendRequest, generatePromptWithSolution } from './utils/util';
 // Import styles
 import '../style/index.css';
 
-const contents = new ContentsManager();
-
-// Icons
-const mySvg = `
-<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-</svg>`;
-
-const myIcon = new LabIcon({
-  name: 'my-extension:icon',
-  svgstr: mySvg
-});
-
+// Robot Icon für AI Tutor
 const robotIcon = new LabIcon({
   name: 'gdds:robot',
   svgstr: `
@@ -43,7 +28,7 @@ const robotIcon = new LabIcon({
   `
 });
 
-// Interfaces
+// Interface für Notebook-Zellen
 interface NotebookCell {
   id: string;
   cell_type: 'markdown' | 'code' | 'raw';
@@ -51,16 +36,7 @@ interface NotebookCell {
   metadata: Record<string, any>;
 }
 
-interface LocalFile {
-  name: string;
-  path: string;
-  type: string;
-  size: number;
-  modified: string;
-  mimetype: string;
-}
-
-// Help Widget
+// Help Widget (AI Tutor)
 class HelpWidget extends Widget {
   private app: JupyterFrontEnd;
   private notebookTracker: INotebookTracker;
@@ -71,9 +47,9 @@ class HelpWidget extends Widget {
     this.notebookTracker = notebookTracker;
     this.addClass('gdds-help-widget');
     this.id = 'gdds-help-widget';
-    this.title.label = 'GDDS Hilfe';
+    this.title.label = 'AI Tutor';
     this.title.icon = robotIcon;
-    this.title.caption = 'GDDS Hilfe und Dokumentation';
+    this.title.caption = 'AI Tutor Hilfe und Dokumentation';
     this.createContent();
   }
 
@@ -81,7 +57,7 @@ class HelpWidget extends Widget {
     const content = document.createElement('div');
     content.innerHTML = `
       <h3 style="margin-top: 0; color: var(--jp-ui-font-color1); border-bottom: 1px solid var(--jp-border-color2); padding-bottom: 8px;">
-        📚 GDDS Hilfe
+        📚 AI Tutor
       </h3>
       <p style="color: var(--jp-ui-font-color2); font-size: 13px;">
         Klicken sie in eine ausgeführte Zelle und Drücken sie dann den Knopf
@@ -134,6 +110,7 @@ class HelpWidget extends Widget {
             const notebookCells = this.getCellWithContext(this.cleanNotebook(notebookData).cells, cellText);
             const noteBookText = this.notebookToString(notebookCells);
             const csvPreviews = await this.readCSVPreviews();
+            console.log(csvPreviews)
             const solution = `
             te = TransactionEncoder()
             te_ary = te.fit(dataset).transform(dataset)
@@ -294,331 +271,19 @@ class HelpWidget extends Widget {
   }
 }
 
-// Sidebar File Browser
-class SidebarFileBrowser extends Widget {
-  private files: LocalFile[] = [];
-  private app: JupyterFrontEnd;
-  private basePath: string;
-  private fileListContainer: HTMLElement;
-
-  constructor(basePath: string, app: JupyterFrontEnd) {
-    super();
-    this.basePath = basePath;
-    this.app = app;
-    this.addClass('gdds-sidebar-browser');
-    this.id = 'gdds-sidebar-browser';
-    this.title.label = 'GdDS';
-    this.title.icon = myIcon;
-    this.title.caption = 'GDDS Lokale Dateien';
-    this.fileListContainer = document.createElement('div');
-    this.fileListContainer.className = 'gdds-sidebar-browser-filelist';
-    this.init();
-  }
-
-  private async init(): Promise<void> {
-    this.createLayout();
-    await this.loadFolders();
-    this.updateFileList();
-  }
-
-  private createLayout(): void {
-    const header = document.createElement('div');
-    header.className = 'gdds-sidebar-browser-header';
-
-    const pathSpan = document.createElement('span');
-    pathSpan.className = 'gdds-sidebar-browser-path';
-    pathSpan.textContent = `📁 ${this.basePath || '(Root)'}`;
-
-    const refreshBtn = document.createElement('button');
-    refreshBtn.className = 'gdds-sidebar-browser-refresh-btn';
-    refreshBtn.innerHTML = '🔄';
-    refreshBtn.title = 'Aktualisieren';
-    refreshBtn.addEventListener('click', () => this.refresh());
-
-    header.appendChild(pathSpan);
-    header.appendChild(refreshBtn);
-    this.node.appendChild(header);
-    this.node.appendChild(this.fileListContainer);
-  }
-
-  private async loadFolders(): Promise<void> {
-    let folders = await axios.get("http://127.0.0.1:8000/file_information");
-    const contents = new ContentsManager();
-    let ordner = null;
-    
-    try {
-      const listing = await contents.get('tasks', { content: true });
-      if (listing.type === 'directory') {
-        ordner = listing.content
-          .filter((item: { type: string; }) => item.type === 'directory')
-          .map((item: { name: any; }) => item.name);
-      }
-    } catch (err) {
-      console.error('Fehler beim Laden der tasks-Ordner:', err);
-    }
-    
-    if (ordner != null) {
-      for (let i = folders.data.length; i >= 0; i--) {
-        if (ordner.includes(folders.data[i])) {
-          folders.data.splice(i, 1);
-        }
-      }
-    }
-    
-    await this.getFolders(folders.data);
-  }
-
-  private async getFolders(folders: string[]): Promise<void> {
-    const searchParams = new URLSearchParams();
-    folders.forEach(folder => {
-      searchParams.append('ordner', folder);
-    });
-    
-    const response = await axios.get(`http://127.0.0.1:8000/get_task?${searchParams.toString()}`, {
-      responseType: 'blob'
-    });
-    
-    const zip = await JSZip.loadAsync(response.data);
-    const targetDir = 'tasks';
-    
-    try {
-      await contents.save(targetDir, {
-        type: 'directory',
-        format: 'json',
-        content: null
-      });
-    } catch (e) {
-      // Ordner existiert bereits
-    }
-
-    for (const [relativePath, file] of Object.entries(zip.files)) {
-      if (!file.dir) {
-        const content = await file.async('text');
-        const fullPath = `${targetDir}/${relativePath}`;
-        const dirPath = fullPath.substring(0, fullPath.lastIndexOf('/'));
-
-        await this.ensureDirectory(dirPath, contents);
-        await contents.save(fullPath, {
-          type: 'file',
-          format: 'text',
-          content: content
-        });
-      } else {
-        await contents.newUntitled({
-          path: `${targetDir}/${relativePath}`,
-          type: 'directory'
-        });
-      }
-    }
-  }
-
-  private async ensureDirectory(path: string, contents: ContentsManager) {
-    const segments = path.split('/');
-    let currentPath = '';
-    
-    for (const segment of segments) {
-      currentPath = currentPath ? `${currentPath}/${segment}` : segment;
-      try {
-        await contents.get(currentPath);
-      } catch (err) {
-        await contents.save(currentPath, {
-          type: 'directory',
-          format: 'json',
-          content: null
-        });
-      }
-    }
-  }
-
-  private updateFileList(): void {
-    this.fileListContainer.innerHTML = '';
-
-    if (this.files.length === 0) {
-      const emptyMessage = document.createElement('div');
-      emptyMessage.className = 'gdds-sidebar-browser-empty';
-      emptyMessage.textContent = 'Keine unterstützten Dateien gefunden';
-      this.fileListContainer.appendChild(emptyMessage);
-      return;
-    }
-
-    const counter = document.createElement('div');
-    counter.className = 'gdds-sidebar-browser-counter';
-    counter.textContent = `${this.files.length} Dateien`;
-    this.fileListContainer.appendChild(counter);
-
-    this.files.forEach(file => {
-      const fileItem = this.createFileItem(file);
-      this.fileListContainer.appendChild(fileItem);
-    });
-  }
-
-  private createFileItem(file: LocalFile): HTMLElement {
-    const item = document.createElement('div');
-    item.className = 'gdds-sidebar-browser-fileitem';
-
-    const icon = document.createElement('span');
-    icon.className = 'gdds-sidebar-browser-fileicon';
-
-    const nameContainer = document.createElement('div');
-    nameContainer.className = 'gdds-sidebar-browser-filename';
-
-    const nameSpan = document.createElement('div');
-    nameSpan.className = 'gdds-sidebar-browser-filename-text';
-    nameSpan.textContent = file.name;
-
-    const sizeSpan = document.createElement('div');
-    sizeSpan.className = 'gdds-sidebar-browser-filesize';
-    const fileSize = file.size > 1024 ? `${Math.round(file.size/1024)}KB` : `${file.size}B`;
-    sizeSpan.textContent = fileSize;
-
-    nameContainer.appendChild(nameSpan);
-    nameContainer.appendChild(sizeSpan);
-
-    item.addEventListener('dblclick', () => {
-      this.openFile(file);
-    });
-
-    item.addEventListener('click', () => {
-      const selected = this.fileListContainer.querySelector('.selected');
-      if (selected) {
-        selected.classList.remove('selected');
-      }
-      item.classList.add('selected');
-    });
-
-    item.addEventListener('contextmenu', (e) => {
-      e.preventDefault();
-      this.showContextMenu(e, file);
-    });
-
-    item.appendChild(icon);
-    item.appendChild(nameContainer);
-
-    return item;
-  }
-
-  private showContextMenu(event: MouseEvent, file: LocalFile): void {
-    const menu = document.createElement('div');
-    menu.className = 'gdds-context-menu';
-    menu.style.left = `${event.clientX}px`;
-    menu.style.top = `${event.clientY}px`;
-
-    const openItem = this.createMenuItem('📖 Öffnen', () => {
-      this.openFile(file);
-      document.body.removeChild(menu);
-    });
-
-    const copyPathItem = this.createMenuItem('📋 Pfad kopieren', () => {
-      this.copyPath(file);
-      document.body.removeChild(menu);
-    });
-
-    menu.appendChild(openItem);
-    menu.appendChild(copyPathItem);
-    document.body.appendChild(menu);
-
-    const closeMenu = (e: MouseEvent) => {
-      if (!menu.contains(e.target as Node)) {
-        document.body.removeChild(menu);
-        document.removeEventListener('click', closeMenu);
-      }
-    };
-    setTimeout(() => document.addEventListener('click', closeMenu), 0);
-  }
-
-  private createMenuItem(text: string, onClick: () => void): HTMLElement {
-    const item = document.createElement('div');
-    item.className = 'gdds-context-menu-item';
-    item.textContent = text;
-    item.addEventListener('click', onClick);
-    return item;
-  }
-
-  private async openFile(file: LocalFile): Promise<void> {
-    try {
-      if (file.type === 'notebook' || file.mimetype === 'application/x-ipynb+json') {
-        await this.app.commands.execute('docmanager:open', {
-          path: file.path,
-          factory: 'Notebook'
-        });
-      } else {
-        await this.app.commands.execute('docmanager:open', {
-          path: file.path
-        });
-      }
-    } catch (error) {
-      console.error('Fehler beim Öffnen der Datei:', error);
-    }
-  }
-
-  private async copyPath(file: LocalFile): Promise<void> {
-    try {
-      await navigator.clipboard.writeText(file.path);
-      this.showSuccess(`Pfad kopiert: ${file.path}`);
-    } catch (error) {
-      console.error('Fehler beim Kopieren:', error);
-      this.showError('Pfad konnte nicht kopiert werden');
-    }
-  }
-
-  private async refresh(): Promise<void> {
-    try {
-      await this.loadFolders();
-      this.updateFileList();
-      this.showSuccess(`${this.files.length} Dateien aktualisiert`);
-    } catch (error) {
-      this.showError('Aktualisierung fehlgeschlagen');
-    }
-  }
-
-  private showError(message: string): void {
-    this.showToast(message, 'gdds-toast-error');
-  }
-
-  private showSuccess(message: string): void {
-    this.showToast(message, 'gdds-toast-success');
-  }
-
-  private showToast(message: string, className: string): void {
-    const toast = document.createElement('div');
-    toast.className = `gdds-toast ${className}`;
-    toast.textContent = message;
-    document.body.appendChild(toast);
-    
-    setTimeout(() => {
-      if (toast.parentNode) {
-        toast.parentNode.removeChild(toast);
-      }
-    }, 3000);
-  }
-}
-
-// Plugin
 const plugin: JupyterFrontEndPlugin<void> = {
   id: 'my-extension:sidebar-button',
   autoStart: true,
   requires: [ILayoutRestorer, INotebookTracker],
   activate: (app: JupyterFrontEnd, restorer: ILayoutRestorer, notebookTracker: INotebookTracker) => {
-    console.log('GDDS ist aktiv - Lokale Dateien werden gescannt');
+    console.log('AI Tutor Extension ist aktiv');
 
-    const sidebarBrowser = new SidebarFileBrowser("", app);
     const helpWidget = new HelpWidget(app, notebookTracker);
-
-    restorer.add(sidebarBrowser, sidebarBrowser.id);
     restorer.add(helpWidget, helpWidget.id);
 
-    app.shell.add(sidebarBrowser, 'left', { rank: 600 });
-
-    app.commands.addCommand('gdds:refresh-files', {
-      label: 'GDDS Dateien aktualisieren',
-      execute: () => {
-        (sidebarBrowser as any).refresh();
-      }
-    });
-
     app.commands.addCommand('gdds:open-help', {
-      label: 'GDDS Hilfe öffnen',
-      caption: 'Öffnet die GDDS Hilfe und Dokumentation',
+      label: 'Öffne den AI Tutor',
+      caption: 'Öffnet den AI Tutor',
       execute: () => {
         if (!helpWidget.isAttached) {
           app.shell.add(helpWidget, 'right');
@@ -630,8 +295,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
     function createHelpButton(app: JupyterFrontEnd): ToolbarButton {
       return new ToolbarButton({
         className: 'gdds-help-button',
-        label: 'Hilfe',
-        tooltip: 'GDDS Hilfe öffnen (Strg+Shift+H)',
+        label: 'AI TUTOR',
+        tooltip: 'AI Tutor Hilfe öffnen (Strg+Shift+H)',
         icon: robotIcon,
         onClick: () => {
           app.commands.execute('gdds:open-help');
@@ -654,7 +319,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
       selector: '.jp-Notebook'
     });
 
-    console.log('Help Button zur Notebook-Toolbar hinzugefügt');
+    console.log('AI Tutor Button zur Notebook-Toolbar hinzugefügt');
   }
 };
 
