@@ -22,9 +22,9 @@ async function authenticateUser(): Promise<boolean> {
   try {
     // Ich muss irgendwie an die EMAIL kommen hier
     const url = new URL(AUTH_URL + "/authenticate");
-    const email = "jann.wissbach@mni.thm.de";
-    const decodedEmail = decodeURIComponent(email);
-    url.searchParams.append('email', decodedEmail);
+    const username = "jhws42";
+    const decodedUsername = decodeURIComponent(username);
+    url.searchParams.append('username', decodedUsername);
     console.log(url.searchParams);
     const response = await fetch(url.toString(), {
       method: 'GET',
@@ -135,7 +135,10 @@ class HelpWidget extends Widget {
           }
           const notebookModel = currentNotebook.content.model;
           if (notebookModel) {
-            const notebookData = notebookModel.toJSON();
+            const notebookData: any = notebookModel.toJSON();
+            console.log("-----------------------------------------------------------------------")
+            console.log(notebookData.cells)
+            console.log("-----------------------------------------------------------------------")
             const notebookCells = this.getCellWithContext(this.cleanNotebook(notebookData).cells, cellText);
             const noteBookText = this.notebookToString(notebookCells);
             console.log(noteBookText)
@@ -147,7 +150,7 @@ class HelpWidget extends Widget {
                 "Content-Type": "application/json",
               },
               body: JSON.stringify({
-                noteBookText: notebookData,
+                noteBookText: notebookData.cells,
                 cellText: cellText,
               }),
             });
