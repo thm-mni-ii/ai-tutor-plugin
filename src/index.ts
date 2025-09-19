@@ -10,12 +10,43 @@ import { NotebookPanel, INotebookTracker } from '@jupyterlab/notebook';
 import { DocumentRegistry } from '@jupyterlab/docregistry';
 import { IDisposable } from '@lumino/disposable';
 import { ToolbarButton } from '@jupyterlab/apputils';
-import { Contents } from '@jupyterlab/services';
-
-import { sendRequest, generatePromptWithSolution } from './utils/util';
 
 // Import styles
 import '../style/index.css';
+
+// Globale Variable für die Authentifikations-URL
+const AUTH_URL = 'http://localhost:8000';
+
+// Authentifikationsfunktion
+async function authenticateUser(): Promise<boolean> {
+  try {
+    // Ich muss irgendwie an die EMAIL kommen hier
+    const url = new URL(AUTH_URL + "/authenticate");
+    const email = "jann.wissbach@mni.thm.de";
+    const decodedEmail = decodeURIComponent(email);
+    url.searchParams.append('email', decodedEmail);
+    console.log(url.searchParams);
+    const response = await fetch(url.toString(), {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (response.ok) {
+      const result = await response.json();
+      console.log("authenticated")
+      console.log(result);
+      return result.user_found === true;
+    }
+      console.log("not authenticated")
+    
+    return false;
+  } catch (error) {
+    console.error('Authentifikationsfehler:', error);
+    return false;
+  }
+}
 
 // Robot Icon für AI Tutor
 const robotIcon = new LabIcon({
@@ -38,12 +69,10 @@ interface NotebookCell {
 
 // Help Widget (AI Tutor)
 class HelpWidget extends Widget {
-  private app: JupyterFrontEnd;
   private notebookTracker: INotebookTracker;
 
   constructor(app: JupyterFrontEnd, notebookTracker: INotebookTracker) {
     super();
-    this.app = app;
     this.notebookTracker = notebookTracker;
     this.addClass('gdds-help-widget');
     this.id = 'gdds-help-widget';
@@ -109,22 +138,21 @@ class HelpWidget extends Widget {
             const notebookData = notebookModel.toJSON();
             const notebookCells = this.getCellWithContext(this.cleanNotebook(notebookData).cells, cellText);
             const noteBookText = this.notebookToString(notebookCells);
-            const csvPreviews = await this.readCSVPreviews();
-            console.log(csvPreviews)
-            const solution = `
-            te = TransactionEncoder()
-            te_ary = te.fit(dataset).transform(dataset)
-            df = pd.DataFrame(te_ary, columns=te.columns_)
-
-            === ZELLE 13 (CODE) ===
-            CODE:
-            # 1. Absolute Häufigkeit: Wie oft wurde jedes Produkt gekauft?
-            absolute_frequency = df.sum().sort_values(ascending=False)
-            print("Absolute Häufigkeit der Produkte:")
-            print(absolute_frequency)`;
-            const prompt = generatePromptWithSolution(noteBookText, cellText, solution);
-            const result = await sendRequest(prompt, "http://localhost:1338/v1/chat/completions");
-            const res = result.choices[0].message.content;
+            console.log(noteBookText)
+            console.log(notebookCells)
+            const baseUrl = AUTH_URL + '/generateAndSendPrompt';
+            const response: any = await fetch(baseUrl, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                noteBookText: notebookData,
+                cellText: cellText,
+              }),
+            });
+            console.log(response);
+            const res = response.choices[0].message.content;
             resultContainer.style.display = 'block';
             resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(res)}</code>`.trim();
           }
@@ -157,7 +185,11 @@ class HelpWidget extends Widget {
         if (Array.isArray(cell.outputs)) {
           for (const output of cell.outputs) {
             if (output.output_type === "stream") {
-              result.push(output.text?.join("") || "");
+              result.push(
+                typeof output.text === "string"
+                  ? output.text
+                  : (output.text?.join("") ?? "")
+              );
             } else if (output.output_type === "error") {
               result.push(`Error: ${output.ename}: ${output.evalue}`);
               if (Array.isArray(output.traceback)) {
@@ -189,65 +221,6 @@ class HelpWidget extends Widget {
     return cells.slice(startIndex, targetIndex + 1);
   }
 
-  private async readCSVPreviews() {
-    const currentNotebook = this.notebookTracker.currentWidget;
-   
-    if (!currentNotebook) {
-      console.log('Kein aktives Notebook');
-      return 'Kein aktives Notebook gefunden.';
-    }
-   
-    const notebookPath = currentNotebook.context.path;
-    const directoryPath = notebookPath.substring(0, notebookPath.lastIndexOf('/')) || '/';
-   
-    try {
-      const contents = await this.app.serviceManager.contents.get(directoryPath);
-     
-      if (contents.type !== 'directory') {
-        return 'Kein gültiger Ordner gefunden.';
-      }
-     
-      const csvFiles = contents.content.filter(
-        (item: Contents.IModel) =>
-          item.type === 'file' &&
-          item.name.toLowerCase().endsWith('.csv')
-      );
-     
-      if (csvFiles.length === 0) {
-        return 'Keine CSV-Dateien im Ordner gefunden.';
-      }
-     
-      const allCSVContent: string[] = [];
-      allCSVContent.push(`=== CSV-Dateien im Ordner (${csvFiles.length} Dateien) ===\n`);
-     
-      for (const csvFile of csvFiles) {
-        try {
-          const filePath = directoryPath === '/' ? csvFile.name : `${directoryPath}/${csvFile.name}`;
-          const fileContent = await this.app.serviceManager.contents.get(filePath);
-         
-          if (fileContent.type === 'file' && fileContent.content) {
-            const lines = fileContent.content.split('\n');
-            const firstSixLines = lines.slice(0, 21);
-           
-            allCSVContent.push(`--- DATEI: ${csvFile.name} (${lines.length} Zeilen total) ---`);
-            firstSixLines.forEach((line: any, index: any) => {
-              allCSVContent.push(`${index + 1}: ${line}`);
-            });
-            allCSVContent.push('');
-          }
-        } catch (error) {
-          console.error(`Fehler beim Lesen von ${csvFile.name}:`, error);
-          allCSVContent.push(`--- FEHLER bei ${csvFile.name}: ${error} ---`);
-          allCSVContent.push('');
-        }
-      }
-     
-      return allCSVContent.join('\n');
-    } catch (error) {
-      console.error('Fehler beim Laden des Ordners:', error);
-      return `Fehler beim Laden des Ordners: ${error}`;
-    }
-  }
     
   private cleanNotebook(notebookData: any) {
     const cleanedNotebook = JSON.parse(JSON.stringify(notebookData));
@@ -275,8 +248,18 @@ const plugin: JupyterFrontEndPlugin<void> = {
   id: 'my-extension:sidebar-button',
   autoStart: true,
   requires: [ILayoutRestorer, INotebookTracker],
-  activate: (app: JupyterFrontEnd, restorer: ILayoutRestorer, notebookTracker: INotebookTracker) => {
-    console.log('AI Tutor Extension ist aktiv');
+  activate: async (app: JupyterFrontEnd, restorer: ILayoutRestorer, notebookTracker: INotebookTracker) => {
+    console.log('AI Tutor Extension startet - Authentifikation wird geprüft...');
+
+    // Authentifikation prüfen
+    const isAuthenticated = await authenticateUser();
+    
+    if (!isAuthenticated) {
+      console.error('Authentifikation fehlgeschlagen - Plugin wird nicht geladen');
+      return;
+    }
+
+    console.log('Authentifikation erfolgreich - AI Tutor Extension wird geladen');
 
     const helpWidget = new HelpWidget(app, notebookTracker);
     restorer.add(helpWidget, helpWidget.id);
