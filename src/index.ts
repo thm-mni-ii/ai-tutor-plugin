@@ -59,13 +59,6 @@ const robotIcon = new LabIcon({
   `
 });
 
-// Interface für Notebook-Zellen
-interface NotebookCell {
-  id: string;
-  cell_type: 'markdown' | 'code' | 'raw';
-  source: string | string[];
-  metadata: Record<string, any>;
-}
 
 // Help Widget (AI Tutor)
 class HelpWidget extends Widget {
@@ -128,7 +121,6 @@ class HelpWidget extends Widget {
         const activeCell = currentNotebook.content.activeCell;
         
         try {
-          const cellText = activeCell.model.sharedModel.getSource();
           let task = String(activeCell.model.metadata.task);
           if (task === "undefined") {
             task = "";
@@ -136,14 +128,11 @@ class HelpWidget extends Widget {
           const notebookModel = currentNotebook.content.model;
           if (notebookModel) {
             const notebookData: any = notebookModel.toJSON();
-            console.log("-----------------------------------------------------------------------")
-            console.log(notebookData.cells)
-            console.log("-----------------------------------------------------------------------")
-            const notebookCells = this.getCellWithContext(this.cleanNotebook(notebookData).cells, cellText);
-            const noteBookText = this.notebookToString(notebookCells);
-            console.log(noteBookText)
-            console.log(notebookCells)
+            console.log(this.notebookTracker.activeCell);
+            const id: string = activeCell.model.sharedModel.id;
             const baseUrl = AUTH_URL + '/generateAndSendPrompt';
+            const notebookContext = currentNotebook.context;
+            const fileName = notebookContext.localPath; 
             const response: any = await fetch(baseUrl, {
               method: "POST",
               headers: {
@@ -151,11 +140,12 @@ class HelpWidget extends Widget {
               },
               body: JSON.stringify({
                 noteBookText: notebookData.cells,
-                cellText: cellText,
+                cellId: id,
+                fileName: fileName
               }),
             });
             console.log(response);
-            const res = response.choices[0].message.content;
+            const res = response.result;
             resultContainer.style.display = 'block';
             resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(res)}</code>`.trim();
           }
@@ -170,74 +160,6 @@ class HelpWidget extends Widget {
     content.appendChild(buttonContainer);
     content.appendChild(resultContainer);
     this.node.appendChild(content);
-  }
-
-  private notebookToString(cells: any[]): string {
-    if (!Array.isArray(cells)) {
-      throw new Error("Ungültiges Notebook-Array");
-    }
-
-    let result: string[] = [];
-    for (const cell of cells) {
-      if (cell.cell_type === "markdown") {
-        result.push("[MARKDOWN]");        
-        result.push(Array.isArray(cell.source) ? cell.source.join('') : cell.source);
-      } else if (cell.cell_type === "code") {
-        result.push("[CODE]");
-        result.push(Array.isArray(cell.source) ? cell.source.join('') : cell.source);
-        if (Array.isArray(cell.outputs)) {
-          for (const output of cell.outputs) {
-            if (output.output_type === "stream") {
-              result.push(
-                typeof output.text === "string"
-                  ? output.text
-                  : (output.text?.join("") ?? "")
-              );
-            } else if (output.output_type === "error") {
-              result.push(`Error: ${output.ename}: ${output.evalue}`);
-              if (Array.isArray(output.traceback)) {
-                result.push(Array.isArray(cell.traceback) ? cell.traceback.join('') : cell.traceback);
-              }
-            }
-          }
-        }
-      }
-    }
-    return result.join("\n\n");
-  }
-
-  private getCellWithContext(cells: NotebookCell[], searchString: string): NotebookCell[] {
-    const getSourceAsString = (source: string | string[]): string => {
-      return Array.isArray(source) ? source.join('') : source;
-    };
-
-    const targetIndex = cells.findIndex(cell => {
-      const sourceString = getSourceAsString(cell.source);
-      return sourceString === searchString;
-    });
-
-    if (targetIndex === -1) {
-      return [];
-    }
-
-    const startIndex = Math.max(0, targetIndex - 5);
-    return cells.slice(startIndex, targetIndex + 1);
-  }
-
-    
-  private cleanNotebook(notebookData: any) {
-    const cleanedNotebook = JSON.parse(JSON.stringify(notebookData));
-    
-    cleanedNotebook.metadata = {
-      kernelspec: cleanedNotebook.metadata.kernelspec || {},
-      language_info: cleanedNotebook.metadata.language_info || {}
-    };
-    
-    cleanedNotebook.cells.forEach((cell: any) => {
-      cell.output = [];
-    });
-    
-    return cleanedNotebook;
   }
 
   private escapeHtml(text: string): string {
