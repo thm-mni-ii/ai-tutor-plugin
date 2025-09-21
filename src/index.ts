@@ -1,4 +1,4 @@
-  import {
+import {
     JupyterFrontEnd,
     JupyterFrontEndPlugin
   } from '@jupyterlab/application';
@@ -10,12 +10,63 @@
   import { DocumentRegistry } from '@jupyterlab/docregistry';
   import { IDisposable } from '@lumino/disposable';
   import { ToolbarButton } from '@jupyterlab/apputils';
+  import { ContentsManager } from '@jupyterlab/services';
 
   // Import styles
   import '../style/index.css';
 
   // Globale Variable für die Authentifikations-URL
   const AUTH_URL = 'http://localhost:8000';
+
+  // Globale Variable für die Tasks-Dateien
+  let taskFiles: folder[] = [];
+
+  // Interface für Datei-/Ordner-Items
+  interface folder {
+    name: String,
+    files: String[]
+  }
+
+  // Funktion zum Laden der Tasks-Dateien
+  async function loadTaskFiles(): Promise<folder[]> {
+    try {
+      const contentsManager = new ContentsManager();
+      const tasksDir = 'tasks';
+      
+      let folders: folder[] = []
+      try {
+        const dirListing = await contentsManager.get(tasksDir, { content: true });
+        console.log("DER ORDNER EXISTIERT OFFENBAR")
+        console.log(dirListing.content)
+        for (let i = 0; i < dirListing.content.length; i++) {
+          if(dirListing.content[i].type == "directory") {
+            let emptyFolder: folder = {
+              name: "",
+              files: []
+            };
+            emptyFolder.name = dirListing.content[i].name;
+            console.log("Subfolder");
+            console.log(emptyFolder.name);
+            const subFolder = tasksDir + "/" + emptyFolder.name;
+            const subDir = await contentsManager.get(subFolder, { content: true });
+            console.log(subDir.content.length)
+            for (let j = 0; j < subDir.content.length; j++) {
+              console.log(subDir.content[j].name);
+              emptyFolder.files.push(subDir.content[j].name);
+            }
+            folders.push(emptyFolder);
+          }
+        }
+      return folders;
+      } catch (error) {
+        console.log('Tasks-Ordner existiert nicht oder ist leer:', error);
+        return [];
+      }
+    } catch (error) {
+      console.error('Fehler beim Laden der Tasks-Dateien:', error);
+      return [];
+    }
+  }
 
   // Authentifikationsfunktion
   async function authenticateUser(): Promise<boolean> {
@@ -186,6 +237,19 @@
 
       console.log('Authentifikation erfolgreich - AI Tutor Extension wird geladen');
 
+      // Tasks-Dateien laden
+      taskFiles = await loadTaskFiles();
+      console.log('Tasks-Dateien geladen:', taskFiles);
+
+      const baseUrl = AUTH_URL + '/get_missing_files';
+      const response = await fetch(`${baseUrl}`, {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(taskFiles)
+      });
+      console.log(response)
       const helpWidget = new HelpWidget(app, notebookTracker);
       restorer.add(helpWidget, helpWidget.id);
 
