@@ -49,8 +49,6 @@ import {
       let folders: folder[] = []
       try {
         const dirListing = await contentsManager.get(tasksDir, { content: true });
-        console.log("DER ORDNER EXISTIERT OFFENBAR")
-        console.log(dirListing.content)
         for (let i = 0; i < dirListing.content.length; i++) {
           if(dirListing.content[i].type == "directory") {
             let emptyFolder: folder = {
@@ -58,13 +56,9 @@ import {
               files: []
             };
             emptyFolder.name = dirListing.content[i].name;
-            console.log("Subfolder");
-            console.log(emptyFolder.name);
             const subFolder = tasksDir + "/" + emptyFolder.name;
             const subDir = await contentsManager.get(subFolder, { content: true });
-            console.log(subDir.content.length)
             for (let j = 0; j < subDir.content.length; j++) {
-              console.log(subDir.content[j].name);
               emptyFolder.files.push(subDir.content[j].name);
             }
             folders.push(emptyFolder);
@@ -72,7 +66,6 @@ import {
         }
       return folders;
       } catch (error) {
-        console.log('Tasks-Ordner existiert nicht oder ist leer:', error);
         return [];
       }
     } catch (error) {
@@ -93,7 +86,6 @@ import {
       } catch (error) {
         // Ordner existiert nicht, also erstellen
         await contentsManager.save(tasksDir, { type: 'directory' });
-        console.log('Tasks-Ordner erstellt');
       }
 
       // Durch alle Ordner und Dateien iterieren
@@ -105,7 +97,6 @@ import {
           await contentsManager.get(folderPath);
         } catch (error) {
           await contentsManager.save(folderPath, { type: 'directory' });
-          console.log(`Ordner ${folder.name} erstellt`);
         }
 
         // Dateien im Ordner speichern
@@ -115,7 +106,6 @@ import {
           try {
             // Prüfen ob Datei bereits existiert
             await contentsManager.get(filePath);
-            console.log(`Datei ${file.name} existiert bereits, überspringe`);
             continue;
           } catch (error) {
             // Datei existiert nicht, also erstellen
@@ -143,7 +133,6 @@ import {
               format: 'text'
             });
             
-            console.log(`Datei ${file.name} erfolgreich gespeichert in ${folder.name}`);
           } catch (error) {
             console.error(`Fehler beim Speichern der Datei ${file.name}:`, error);
           }
@@ -162,7 +151,6 @@ import {
       const username = "jhws42";
       const decodedUsername = decodeURIComponent(username);
       url.searchParams.append('username', decodedUsername);
-      console.log(url.searchParams);
       const response = await fetch(url.toString(), {
         method: 'GET',
         headers: {
@@ -172,11 +160,8 @@ import {
       
       if (response.ok) {
         const result = await response.json();
-        console.log("authenticated")
-        console.log(result);
         return result.user_found === true;
       }
-        console.log("not authenticated")
       
       return false;
     } catch (error) {
@@ -265,7 +250,6 @@ import {
             const notebookModel = currentNotebook.content.model;
             if (notebookModel) {
               const notebookData: any = notebookModel.toJSON();
-              console.log(this.notebookTracker.activeCell);
               const id: string = activeCell.model.sharedModel.id;
               const baseUrl = AUTH_URL + '/generateAndSendPrompt';
               const notebookContext = currentNotebook.context;
@@ -281,10 +265,9 @@ import {
                   fileName: fileName
                 }),
               });
-              console.log(await response.json());
-              const res = response.result;
+              const res = await response.json();
               resultContainer.style.display = 'block';
-              resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(res)}</code>`.trim();
+              resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(res.result)}</code>`.trim();
             }
           } catch (error) {
             console.error('Fehler beim Zugriff auf Zelle:', error);
@@ -311,7 +294,6 @@ import {
     autoStart: true,
     requires: [ILayoutRestorer, INotebookTracker],
     activate: async (app: JupyterFrontEnd, restorer: ILayoutRestorer, notebookTracker: INotebookTracker) => {
-      console.log('AI Tutor Extension startet - Authentifikation wird geprüft...');
 
       // Authentifikation prüfen
       const isAuthenticated = await authenticateUser();
@@ -321,11 +303,9 @@ import {
         return;
       }
 
-      console.log('Authentifikation erfolgreich - AI Tutor Extension wird geladen');
 
       // Tasks-Dateien laden
       taskFiles = await loadTaskFiles();
-      console.log('Tasks-Dateien geladen:', taskFiles);
 
       const baseUrl = AUTH_URL + '/get_missing_files';
       const response = await fetch(`${baseUrl}`, {
@@ -339,11 +319,8 @@ import {
       if (response.ok) {
         try {
           const missingFiles: MissingFilesResponse = await response.json();
-          console.log('Fehlende Dateien empfangen:', missingFiles);
           
-          // Fehlende Dateien speichern
           await saveMissingFiles(missingFiles);
-          console.log('Fehlende Dateien erfolgreich gespeichert');
         } catch (error) {
           console.error('Fehler beim Verarbeiten der Server-Antwort:', error);
         }
@@ -392,7 +369,6 @@ import {
         selector: '.jp-Notebook'
       });
 
-      console.log('AI Tutor Button zur Notebook-Toolbar hinzugefügt');
     }
   };
 
