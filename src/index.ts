@@ -27,6 +27,19 @@ import {
     files: String[]
   }
 
+  // Interface für die Server-Antwort mit fehlenden Dateien
+  interface MissingFilesResponse {
+    folders: Array<{
+      name: string;
+      files: Array<{
+        name: string;
+        content_base64?: string;
+        content?: string;
+        path: string;
+      }>;
+    }>;
+  }
+
   // Funktion zum Laden der Tasks-Dateien
   async function loadTaskFiles(): Promise<folder[]> {
     try {
@@ -65,6 +78,79 @@ import {
     } catch (error) {
       console.error('Fehler beim Laden der Tasks-Dateien:', error);
       return [];
+    }
+  }
+
+  // Funktion zum Speichern der fehlenden Dateien
+  async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<void> {
+    try {
+      const contentsManager = new ContentsManager();
+      const tasksDir = 'tasks';
+
+      // Sicherstellen, dass der Tasks-Ordner existiert
+      try {
+        await contentsManager.get(tasksDir);
+      } catch (error) {
+        // Ordner existiert nicht, also erstellen
+        await contentsManager.save(tasksDir, { type: 'directory' });
+        console.log('Tasks-Ordner erstellt');
+      }
+
+      // Durch alle Ordner und Dateien iterieren
+      for (const folder of missingFiles.folders) {
+        const folderPath = `${tasksDir}/${folder.name}`;
+        
+        // Ordner erstellen falls nicht vorhanden
+        try {
+          await contentsManager.get(folderPath);
+        } catch (error) {
+          await contentsManager.save(folderPath, { type: 'directory' });
+          console.log(`Ordner ${folder.name} erstellt`);
+        }
+
+        // Dateien im Ordner speichern
+        for (const file of folder.files) {
+          const filePath = `${folderPath}/${file.name}`;
+          
+          try {
+            // Prüfen ob Datei bereits existiert
+            await contentsManager.get(filePath);
+            console.log(`Datei ${file.name} existiert bereits, überspringe`);
+            continue;
+          } catch (error) {
+            // Datei existiert nicht, also erstellen
+          }
+
+          try {
+            // Dateiinhalt decodieren und speichern
+            let fileContent: string;
+            
+            if (file.content_base64) {
+              // Base64 decodieren
+              fileContent = atob(file.content_base64);
+            } else if (file.content) {
+              // Direkter Textinhalt
+              fileContent = file.content;
+            } else {
+              console.warn(`Kein Inhalt für Datei ${file.name} gefunden`);
+              continue;
+            }
+
+            // Datei speichern
+            await contentsManager.save(filePath, {
+              type: 'file',
+              content: fileContent,
+              format: 'text'
+            });
+            
+            console.log(`Datei ${file.name} erfolgreich gespeichert in ${folder.name}`);
+          } catch (error) {
+            console.error(`Fehler beim Speichern der Datei ${file.name}:`, error);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Fehler beim Speichern der fehlenden Dateien:', error);
     }
   }
 
@@ -249,7 +335,22 @@ import {
           },
           body: JSON.stringify(taskFiles)
       });
-      console.log(response)
+
+      if (response.ok) {
+        try {
+          const missingFiles: MissingFilesResponse = await response.json();
+          console.log('Fehlende Dateien empfangen:', missingFiles);
+          
+          // Fehlende Dateien speichern
+          await saveMissingFiles(missingFiles);
+          console.log('Fehlende Dateien erfolgreich gespeichert');
+        } catch (error) {
+          console.error('Fehler beim Verarbeiten der Server-Antwort:', error);
+        }
+      } else {
+        console.error('Fehler beim Abrufen der fehlenden Dateien:', response.statusText);
+      }
+
       const helpWidget = new HelpWidget(app, notebookTracker);
       restorer.add(helpWidget, helpWidget.id);
 
