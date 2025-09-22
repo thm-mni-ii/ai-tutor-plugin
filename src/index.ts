@@ -146,9 +146,10 @@ import {
   // Authentifikationsfunktion
   async function authenticateUser(): Promise<boolean> {
     try {
-      // Ich muss irgendwie an die EMAIL kommen hier
       const url = new URL(AUTH_URL + "/authenticate");
-      const username = "jhws42";
+      const username_list = window.location.pathname.split("/");
+      const username = username_list[2]
+
       const decodedUsername = decodeURIComponent(username);
       url.searchParams.append('username', decodedUsername);
       const response = await fetch(url.toString(), {
