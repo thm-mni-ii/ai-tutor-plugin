@@ -16,7 +16,7 @@ import {
   import '../style/index.css';
 
   // Globale Variable für die Authentifikations-URL
-  const AUTH_URL = 'http://localhost:8000';
+  const AUTH_URL = 'https://feedback.mni.thm.de/gdds';
 
   // Globale Variable für die Tasks-Dateien
   let taskFiles: folder[] = [];
