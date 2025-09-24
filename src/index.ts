@@ -44,7 +44,7 @@ import {
   async function loadTaskFiles(): Promise<folder[]> {
     try {
       const contentsManager = new ContentsManager();
-      const tasksDir = 'tasks';
+      const tasksDir = 'Übungsaufgaben';
       
       let folders: folder[] = []
       try {
@@ -75,73 +75,76 @@ import {
   }
 
   // Funktion zum Speichern der fehlenden Dateien
-  async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<void> {
-    try {
-      const contentsManager = new ContentsManager();
-      const tasksDir = 'tasks';
+async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<void> {
+  const contentsManager = new ContentsManager();
+  const tasksDir = "Übungsaufgaben";
 
-      // Sicherstellen, dass der Tasks-Ordner existiert
+  // Hilfsfunktion: rekursiv sicherstellen, dass ein Ordner existiert
+  async function ensureDirectory(path: string): Promise<void> {
+    const parts = path.split("/");
+    let current = "";
+    for (const part of parts) {
+      current = current ? `${current}/${part}` : part;
       try {
-        await contentsManager.get(tasksDir);
-      } catch (error) {
-        // Ordner existiert nicht, also erstellen
-        await contentsManager.save(tasksDir, { type: 'directory' });
+        await contentsManager.get(current);
+      } catch {
+        await contentsManager.save(current, { type: "directory" });
       }
-
-      // Durch alle Ordner und Dateien iterieren
-      for (const folder of missingFiles.folders) {
-        const folderPath = `${tasksDir}/${folder.name}`;
-        
-        // Ordner erstellen falls nicht vorhanden
-        try {
-          await contentsManager.get(folderPath);
-        } catch (error) {
-          await contentsManager.save(folderPath, { type: 'directory' });
-        }
-
-        // Dateien im Ordner speichern
-        for (const file of folder.files) {
-          const filePath = `${folderPath}/${file.name}`;
-          
-          try {
-            // Prüfen ob Datei bereits existiert
-            await contentsManager.get(filePath);
-            continue;
-          } catch (error) {
-            // Datei existiert nicht, also erstellen
-          }
-
-          try {
-            // Dateiinhalt decodieren und speichern
-            let fileContent: string;
-            
-            if (file.content_base64) {
-              // Base64 decodieren
-              fileContent = atob(file.content_base64);
-            } else if (file.content) {
-              // Direkter Textinhalt
-              fileContent = file.content;
-            } else {
-              console.warn(`Kein Inhalt für Datei ${file.name} gefunden`);
-              continue;
-            }
-
-            // Datei speichern
-            await contentsManager.save(filePath, {
-              type: 'file',
-              content: fileContent,
-              format: 'text'
-            });
-            
-          } catch (error) {
-            console.error(`Fehler beim Speichern der Datei ${file.name}:`, error);
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Fehler beim Speichern der fehlenden Dateien:', error);
     }
   }
+
+  try {
+    // Root-Ordner sicherstellen
+    await ensureDirectory(tasksDir);
+
+    for (const folder of missingFiles.folders) {
+      const folderPath = `${tasksDir}/${folder.name}`;
+
+      // ggf. verschachtelte Ordner erstellen
+      await ensureDirectory(folderPath);
+
+      for (const file of folder.files) {
+        const filePath = `${folderPath}/${file.name}`;
+
+        // Datei überspringen, wenn sie schon existiert
+        try {
+          await contentsManager.get(filePath);
+          continue;
+        } catch {
+          // Datei existiert nicht → speichern
+        }
+
+        try {
+          let fileContent: string | undefined;
+
+          if (file.content_base64) {
+            // Base64 → Uint8Array → UTF-8 String
+            const binary = Uint8Array.from(atob(file.content_base64), c => c.charCodeAt(0));
+            fileContent = new TextDecoder("utf-8").decode(binary);
+          } else if (file.content) {
+            fileContent = file.content;
+          } else {
+            console.warn(`Kein Inhalt für Datei ${file.name} gefunden`);
+            continue;
+          }
+
+          // Datei speichern
+          await contentsManager.save(filePath, {
+            type: "file",
+            format: "text",
+            content: fileContent,
+          });
+        } catch (error) {
+          console.error(`Fehler beim Speichern der Datei ${file.name}:`, error);
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Fehler beim Speichern der fehlenden Dateien:", error);
+  }
+}
+
+
 
   // Authentifikationsfunktion
   async function authenticateUser(): Promise<boolean> {
