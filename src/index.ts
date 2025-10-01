@@ -16,7 +16,8 @@ import {
   import '../style/index.css';
 
   // Globale Variable für die Authentifikations-URL
-  const AUTH_URL = 'https://feedback.mni.thm.de/gdds';
+  //const AUTH_URL = 'https://feedback.mni.thm.de/gdds';
+  const AUTH_URL = 'http://localhost:8000';
 
   // Globale Variable für die Tasks-Dateien
   let taskFiles: folder[] = [];
@@ -257,7 +258,9 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
             }
             const notebookModel = currentNotebook.content.model;
             if (notebookModel) {
-              const notebookData: any = notebookModel.toJSON();
+              const notebookData: any = notebookModel.toJSON();     
+              const username_list = window.location.pathname.split("/");
+              const username = username_list[2]
               const id: string = activeCell.model.sharedModel.id;
               const baseUrl = AUTH_URL + '/generateAndSendPrompt';
               const notebookContext = currentNotebook.context;
@@ -270,16 +273,17 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                 body: JSON.stringify({
                   noteBookText: notebookData.cells,
                   cellId: id,
-                  fileName: fileName
+                  fileName: fileName,
+                  userName: username
                 }),
               });
               const res = await response.json();
               console.log(res);
               let text = ""
-              if(res.detail.includes("Request error:")) {
-                text = "Der AI Tutor ist im Moment nicht erreichbar.";
+              if (res.detail && res.detail.includes("Request error:")) {
+                  text = "Der AI Tutor ist im Moment nicht erreichbar.";
               } else {
-                text = res.result;
+                  text = res.result;
               }
               console.log(text)
               resultContainer.style.display = 'block';
