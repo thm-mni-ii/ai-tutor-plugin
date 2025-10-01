@@ -16,8 +16,7 @@ import {
   import '../style/index.css';
 
   // Globale Variable für die Authentifikations-URL
-  //const AUTH_URL = 'https://feedback.mni.thm.de/gdds';
-  const AUTH_URL = 'http://localhost:8000';
+  const AUTH_URL = 'https://feedback.mni.thm.de/gdds';
 
   // Globale Variable für die Tasks-Dateien
   let taskFiles: folder[] = [];
@@ -259,6 +258,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
             const notebookModel = currentNotebook.content.model;
             if (notebookModel) {
               const notebookData: any = notebookModel.toJSON();     
+              console.log(notebookData);
               const username_list = window.location.pathname.split("/");
               const username = username_list[2]
               const id: string = activeCell.model.sharedModel.id;
