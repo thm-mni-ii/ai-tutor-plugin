@@ -241,6 +241,10 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
       `;
 
       button.onclick = async () => {
+        button.disabled = true;
+        setTimeout(() => {
+          button.disabled = false;
+        }, 30000);
         const currentNotebook = this.notebookTracker.currentWidget;
 
         if (currentNotebook && currentNotebook.content.activeCell) {
@@ -270,10 +274,19 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                 }),
               });
               const res = await response.json();
+              console.log(res);
+              let text = ""
+              if(res.detail.includes("Request error:")) {
+                text = "Der AI Tutor ist im Moment nicht erreichbar.";
+              } else {
+                text = res.result;
+              }
+              console.log(text)
               resultContainer.style.display = 'block';
-              resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(res.result)}</code>`.trim();
+              resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
             }
           } catch (error) {
+            button.disabled = false;
             console.error('Fehler beim Zugriff auf Zelle:', error);
           }
         }

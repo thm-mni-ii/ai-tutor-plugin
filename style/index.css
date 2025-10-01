@@ -356,6 +356,11 @@ body[data-jp-theme-light="false"] .jp-HelpDialog-faq summary:hover {
   height: 100%;
 }
 
+button:disabled {
+  opacity: 0.5;        /* halb durchsichtig */
+  cursor: not-allowed; /* Mauszeiger verändert sich */
+}
+
 .gdds-sidebar-browser {
   display: flex;
   flex-direction: column;
