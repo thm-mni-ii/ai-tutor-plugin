@@ -12,16 +12,14 @@ import {
   import { ToolbarButton } from '@jupyterlab/apputils';
   import { ContentsManager } from '@jupyterlab/services';
 
-  // Import styles
   import '../style/index.css';
 
-  // Globale Variable für die Authentifikations-URL
+  import robotSvg from '../style/icons/robot.svg';
+
   const AUTH_URL = 'https://feedback.mni.thm.de/gdds';
 
-  // Globale Variable für die Tasks-Dateien
   let taskFiles: folder[] = [];
 
-  // Interface für Datei-/Ordner-Items
   interface folder {
     name: String,
     files: String[]
@@ -161,7 +159,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
           'Content-Type': 'application/json'
         }
       });
-      
+      console.log(response)
       if (response.ok) {
         const result = await response.json();
         return result.user_found === true;
@@ -176,19 +174,15 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
 
   // Robot Icon für AI Tutor
   const robotIcon = new LabIcon({
-    name: 'gdds:robot',
-    svgstr: `
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12 2c.55 0 1 .45 1 1v1h6c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H5c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2h6V3c0-.55.45-1 1-1zM7.5 11c-.83 0-1.5-.67-1.5-1.5S6.67 8 7.5 8s1.5.67 1.5 1.5S8.33 11 7.5 11zm9 0c-.83 0-1.5-.67-1.5-1.5S15.67 8 16.5 8s1.5.67 1.5 1.5S17.33 11 16.5 11zM8 15h8v2H8v-2z"/>
-        <circle cx="12" cy="2" r="1"/>
-      </svg>
-    `
+    name: 'myplugin:robot',
+    svgstr: robotSvg
   });
 
 
   // Help Widget (AI Tutor)
-  class HelpWidget extends Widget {
+ class HelpWidget extends Widget {
     private notebookTracker: INotebookTracker;
+    private followUpContainer: HTMLDivElement | null = null;
 
     constructor(app: JupyterFrontEnd, notebookTracker: INotebookTracker) {
       super();
@@ -208,12 +202,13 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
           📚 AI Tutor
         </h3>
         <p style="color: var(--jp-ui-font-color2); font-size: 13px;">
-          Klicken sie in eine ausgeführte Zelle und Drücken sie dann den Knopf
+          Der AI Tutor hilft dir mit Feedback beim Lösen der Aufgaben.
+          Wähle die gewünschte Zelle (Aufgabenblock oder Codeblock) aus und drücke den Knopf "Feedback generieren".
         </p>
       `;
 
       const button = document.createElement('button');
-      button.textContent = 'Zelle analysieren';
+      button.textContent = 'Feedback generieren';
       button.style.cssText = `
         padding: 6px 12px;
         background-color: var(--jp-brand-color1);
@@ -239,12 +234,121 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
         overflow-y: auto;
         display: none;
       `;
+      
+      let lastFeedbackText = '';
+      this.followUpContainer = document.createElement('div');
+      this.followUpContainer.style.cssText = `
+        margin-top: 12px;
+        display: none;
+      `;
+
+      const textarea = document.createElement('textarea');
+      textarea.placeholder = 'Stelle eine Folgefrage...';
+      textarea.style.cssText = `
+        width: 100%;
+        min-height: 80px;
+        padding: 8px;
+        border: 1px solid var(--jp-border-color2);
+        border-radius: 4px;
+        background: var(--jp-layout-color1);
+        color: var(--jp-ui-font-color1);
+        font-family: var(--jp-ui-font-family);
+        font-size: 13px;
+        resize: vertical;
+        box-sizing: border-box;
+      `;
+
+      const followUpButton = document.createElement('button');
+      followUpButton.textContent = 'Frage senden';
+      followUpButton.style.cssText = `
+        margin-top: 8px;
+        padding: 6px 12px;
+        background-color: var(--jp-brand-color1);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      `;
+
+      followUpButton.onclick = async () => {
+        const question = textarea.value.trim();
+        if (!question) {
+          alert('Bitte gib eine Frage ein.');
+          return;
+        }
+
+        followUpButton.disabled = true;
+        setTimeout(() => {
+          followUpButton.disabled = false;
+        }, 4000);
+
+        resultContainer.style.display = 'block';
+        resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">Ich denke gerade nach...</code>`.trim();
+
+        const currentNotebook = this.notebookTracker.currentWidget;
+
+        if (currentNotebook && currentNotebook.content.activeCell) {
+          const activeCell = currentNotebook.content.activeCell;
+          
+          try {
+            const notebookModel = currentNotebook.content.model;
+            if (notebookModel) {
+              const notebookData: any = notebookModel.toJSON();     
+              const username_list = window.location.pathname.split("/");
+              const username = username_list[2];
+              const id: string = activeCell.model.sharedModel.id;
+              lastFeedbackText = lastFeedbackText + "Nachfrage: \n" + "\"\"\""+ question + "\"\"\"\n";
+
+              const baseUrl = AUTH_URL + '/generateAndSendPrompt';
+              const notebookContext = currentNotebook.context;
+              const fileName = notebookContext.localPath; 
+              
+              const response: any = await fetch(baseUrl, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  noteBookText: notebookData.cells,
+                  cellId: id,
+                  fileName: fileName,
+                  userName: username,
+                  conversation: lastFeedbackText,
+                }),
+              });
+              
+              const res = await response.json();
+              let text = "";
+              if (res.detail && res.detail.includes("Request error:")) {
+                  text = "Der AI Tutor ist im Moment nicht erreichbar.";
+              } else {
+                  text = res.result;
+              }
+              lastFeedbackText = lastFeedbackText + "Antwort: \n" + "\"\"\""+ this.escapeHtml(text) + "\"\"\"\n";
+
+              resultContainer.style.display = 'block';
+              resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
+              
+              // Textfeld leeren nach erfolgreicher Anfrage
+              textarea.value = '';
+            }
+          } catch (error) {
+            followUpButton.disabled = false;
+            console.error('Fehler beim Zugriff auf Zelle:', error);
+          }
+        }
+      };
+
+      this.followUpContainer.appendChild(textarea);
+      this.followUpContainer.appendChild(followUpButton);
 
       button.onclick = async () => {
         button.disabled = true;
         setTimeout(() => {
           button.disabled = false;
         }, 30000);
+        resultContainer.style.display = 'block';
+        resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">Ich denke gerade nach...</code>`.trim();
         const currentNotebook = this.notebookTracker.currentWidget;
 
         if (currentNotebook && currentNotebook.content.activeCell) {
@@ -258,9 +362,9 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
             const notebookModel = currentNotebook.content.model;
             if (notebookModel) {
               const notebookData: any = notebookModel.toJSON();     
-              console.log(notebookData);
               const username_list = window.location.pathname.split("/");
-              const username = username_list[2]
+              const username = username_list[2];
+
               const id: string = activeCell.model.sharedModel.id;
               const baseUrl = AUTH_URL + '/generateAndSendPrompt';
               const notebookContext = currentNotebook.context;
@@ -274,20 +378,25 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                   noteBookText: notebookData.cells,
                   cellId: id,
                   fileName: fileName,
-                  userName: username
+                  userName: username,
+                  conversation: "Keine vorherige Konversation"
                 }),
               });
               const res = await response.json();
-              console.log(res);
-              let text = ""
+              let text = "";
               if (res.detail && res.detail.includes("Request error:")) {
                   text = "Der AI Tutor ist im Moment nicht erreichbar.";
               } else {
                   text = res.result;
               }
-              console.log(text)
               resultContainer.style.display = 'block';
+              lastFeedbackText = "";
+              lastFeedbackText = lastFeedbackText + "Antwort: \n" + "\"\"\""+ this.escapeHtml(text) + "\"\"\"\n";
               resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
+              
+              if (this.followUpContainer) {
+                this.followUpContainer.style.display = 'block';
+              }
             }
           } catch (error) {
             button.disabled = false;
@@ -300,6 +409,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
       buttonContainer.appendChild(button);
       content.appendChild(buttonContainer);
       content.appendChild(resultContainer);
+      content.appendChild(this.followUpContainer);
       this.node.appendChild(content);
     }
 
@@ -353,20 +463,25 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
       restorer.add(helpWidget, helpWidget.id);
 
       app.commands.addCommand('gdds:open-help', {
-        label: 'Öffne den AI Tutor',
-        caption: 'Öffnet den AI Tutor',
+        label: 'Toggle AI Tutor',
+        caption: 'Öffnet oder schließt den AI Tutor',
         execute: () => {
+          // Prüfen ob das Widget bereits angehängt ist
           if (!helpWidget.isAttached) {
+            // Widget hinzufügen, wenn es nicht angehängt ist
             app.shell.add(helpWidget, 'right');
+            app.shell.activateById(helpWidget.id);
+          } else {
+            helpWidget.close();
+
           }
-          app.shell.activateById(helpWidget.id);
         }
       });
 
       function createHelpButton(app: JupyterFrontEnd): ToolbarButton {
         return new ToolbarButton({
           className: 'gdds-help-button',
-          label: 'AI TUTOR',
+          label: 'AI Tutor',
           tooltip: 'AI Tutor Hilfe öffnen (Strg+Shift+H)',
           icon: robotIcon,
           onClick: () => {
