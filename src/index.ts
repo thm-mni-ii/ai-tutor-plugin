@@ -159,7 +159,6 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
           'Content-Type': 'application/json'
         }
       });
-      console.log(response)
       if (response.ok) {
         const result = await response.json();
         return result.user_found === true;
@@ -234,7 +233,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
         overflow-y: auto;
         display: none;
       `;
-      
+      let messages: any[] = []; 
       let lastFeedbackText = '';
       this.followUpContainer = document.createElement('div');
       this.followUpContainer.style.cssText = `
@@ -270,6 +269,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
         cursor: pointer;
       `;
 
+
       followUpButton.onclick = async () => {
         const question = textarea.value.trim();
         if (!question) {
@@ -288,47 +288,33 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
         const currentNotebook = this.notebookTracker.currentWidget;
 
         if (currentNotebook && currentNotebook.content.activeCell) {
-          const activeCell = currentNotebook.content.activeCell;
-          
           try {
             const notebookModel = currentNotebook.content.model;
             if (notebookModel) {
-              const notebookData: any = notebookModel.toJSON();     
-              const username_list = window.location.pathname.split("/");
-              const username = username_list[2];
-              const id: string = activeCell.model.sharedModel.id;
               lastFeedbackText = lastFeedbackText + "Nachfrage: \n" + "\"\"\""+ question + "\"\"\"\n";
-
-              const baseUrl = AUTH_URL + '/generateAndSendPrompt';
-              const notebookContext = currentNotebook.context;
-              const fileName = notebookContext.localPath; 
-              
+              const baseUrl = AUTH_URL + '/nachfrage';
+              const message = {
+                "role": "user",
+                "content": question
+              };
+              messages.push(message);
               const response: any = await fetch(baseUrl, {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                  noteBookText: notebookData.cells,
-                  cellId: id,
-                  fileName: fileName,
-                  userName: username,
-                  conversation: lastFeedbackText,
+                  messages: messages
                 }),
               });
               
               const res = await response.json();
-              let text = "";
-              if (res.detail && res.detail.includes("Request error:")) {
-                  text = "Der AI Tutor ist im Moment nicht erreichbar.";
-              } else {
-                  text = res.result;
-              }
+              messages = res.messages.messages;
+              const text = messages[messages.length - 1].content;
               lastFeedbackText = lastFeedbackText + "Antwort: \n" + "\"\"\""+ this.escapeHtml(text) + "\"\"\"\n";
-
               resultContainer.style.display = 'block';
               resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
-              
+              followUpButton.disabled = false;
               // Textfeld leeren nach erfolgreicher Anfrage
               textarea.value = '';
             }
@@ -364,7 +350,6 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
               const notebookData: any = notebookModel.toJSON();     
               const username_list = window.location.pathname.split("/");
               const username = username_list[2];
-
               const id: string = activeCell.model.sharedModel.id;
               const baseUrl = AUTH_URL + '/generateAndSendPrompt';
               const notebookContext = currentNotebook.context;
@@ -379,16 +364,13 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                   cellId: id,
                   fileName: fileName,
                   userName: username,
-                  conversation: "Keine vorherige Konversation"
                 }),
               });
               const res = await response.json();
+              messages = res.messages;
               let text = "";
-              if (res.detail && res.detail.includes("Request error:")) {
-                  text = "Der AI Tutor ist im Moment nicht erreichbar.";
-              } else {
-                  text = res.result;
-              }
+              text = messages[messages.length - 1].content;
+              button.disabled = false;
               resultContainer.style.display = 'block';
               lastFeedbackText = "";
               lastFeedbackText = lastFeedbackText + "Antwort: \n" + "\"\"\""+ this.escapeHtml(text) + "\"\"\"\n";
