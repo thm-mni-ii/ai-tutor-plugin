@@ -297,6 +297,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                 "role": "user",
                 "content": question
               };
+
               messages.push(message);
               const response: any = await fetch(baseUrl, {
                 method: "POST",
@@ -310,7 +311,12 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
               
               const res = await response.json();
               messages = res.messages.messages;
-              const text = messages[messages.length - 1].content;
+              let text = "";
+              if(messages === undefined) {
+                text = "AI Tutor ist nicht erreichbar"
+              } else {
+                text = messages[messages.length - 1].content;
+              }
               lastFeedbackText = lastFeedbackText + "Antwort: \n" + "\"\"\""+ this.escapeHtml(text) + "\"\"\"\n";
               resultContainer.style.display = 'block';
               resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
@@ -369,7 +375,11 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
               const res = await response.json();
               messages = res.messages;
               let text = "";
-              text = messages[messages.length - 1].content;
+              if(messages === undefined) {
+                text = "AI Tutor ist nicht erreichbar"
+              } else {
+                text = messages[messages.length - 1].content;
+              }
               button.disabled = false;
               resultContainer.style.display = 'block';
               lastFeedbackText = "";
