@@ -280,7 +280,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
         followUpButton.disabled = true;
         setTimeout(() => {
           followUpButton.disabled = false;
-        }, 4000);
+        }, 30000);
 
         resultContainer.style.display = 'block';
         resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">Ich denke gerade nach...</code>`.trim();
@@ -297,6 +297,9 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                 "role": "user",
                 "content": question
               };
+              const notebookData: any = notebookModel.toJSON();     
+              const activeCell = currentNotebook.content.activeCell;
+              const id: string = activeCell.model.sharedModel.id;
 
               messages.push(message);
               const response: any = await fetch(baseUrl, {
@@ -305,12 +308,14 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                   "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                  messages: messages
+                  messages: messages,
+                  cellId: id,
+                  noteBookText: notebookData.cells,
                 }),
               });
               
               const res = await response.json();
-              messages = res.messages.messages;
+              messages = res.messages;
               let text = "";
               if(messages === undefined) {
                 text = "AI Tutor ist nicht erreichbar"
