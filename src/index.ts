@@ -161,7 +161,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
       });
       if (response.ok) {
         const result = await response.json();
-        return result.user_found === true;
+        return result;
       }
       
       return false;
@@ -182,8 +182,9 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
  class HelpWidget extends Widget {
     private notebookTracker: INotebookTracker;
     private followUpContainer: HTMLDivElement | null = null;
+    private isAdmin: boolean = false;
 
-    constructor(app: JupyterFrontEnd, notebookTracker: INotebookTracker) {
+    constructor(app: JupyterFrontEnd, notebookTracker: INotebookTracker, isAdmin: boolean) {
       super();
       this.notebookTracker = notebookTracker;
       this.addClass('gdds-help-widget');
@@ -191,10 +192,11 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
       this.title.label = 'AI Tutor';
       this.title.icon = robotIcon;
       this.title.caption = 'AI Tutor Hilfe und Dokumentation';
+      this.isAdmin = isAdmin;
       this.createContent();
     }
 
-    private createContent(): void {
+    private async createContent(): Promise<void> {
       const content = document.createElement('div');
       content.innerHTML = `
         <h3 style="margin-top: 0; color: var(--jp-ui-font-color1); border-bottom: 1px solid var(--jp-border-color2); padding-bottom: 8px;">
@@ -229,12 +231,11 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
         font-family: var(--jp-code-font-family);
         font-size: 12px;
         white-space: pre-wrap;
-        max-height: 300px;
+        max-height: 450px;
         overflow-y: auto;
         display: none;
       `;
       let messages: any[] = []; 
-      let lastFeedbackText = '';
       this.followUpContainer = document.createElement('div');
       this.followUpContainer.style.cssText = `
         margin-top: 12px;
@@ -257,6 +258,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
         box-sizing: border-box;
       `;
 
+ 
       const followUpButton = document.createElement('button');
       followUpButton.textContent = 'Frage senden';
       followUpButton.style.cssText = `
@@ -291,7 +293,6 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
           try {
             const notebookModel = currentNotebook.content.model;
             if (notebookModel) {
-              lastFeedbackText = lastFeedbackText + "Nachfrage: \n" + "\"\"\""+ question + "\"\"\"\n";
               const baseUrl = AUTH_URL + '/nachfrage';
               const message = {
                 "role": "user",
@@ -322,7 +323,6 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
               } else {
                 text = messages[messages.length - 1].content;
               }
-              lastFeedbackText = lastFeedbackText + "Antwort: \n" + "\"\"\""+ this.escapeHtml(text) + "\"\"\"\n";
               resultContainer.style.display = 'block';
               resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
               followUpButton.disabled = false;
@@ -339,6 +339,237 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
       this.followUpContainer.appendChild(textarea);
       this.followUpContainer.appendChild(followUpButton);
 
+      if(this.isAdmin) {
+        const systemPromptArea = document.createElement('textarea');
+        systemPromptArea.style.cssText = `
+          width: 100%;
+          min-height: 240px;
+          padding: 8px;
+          border: 1px solid var(--jp-border-color2);
+          border-radius: 4px;
+          background: var(--jp-layout-color1);
+          color: var(--jp-ui-font-color1);
+          font-family: var(--jp-ui-font-family);
+          font-size: 13px;
+          resize: vertical;
+          box-sizing: border-box;
+        `;
+
+        const userPromptArea = document.createElement('textarea');
+        userPromptArea.style.cssText = `
+          width: 100%;
+          min-height: 240px;
+          padding: 8px;
+          border: 1px solid var(--jp-border-color2);
+          border-radius: 4px;
+          background: var(--jp-layout-color1);
+          color: var(--jp-ui-font-color1);
+          font-family: var(--jp-ui-font-family);
+          font-size: 13px;
+          resize: vertical;
+          box-sizing: border-box;
+        `;
+
+        const questionArea = document.createElement('textarea');
+        questionArea.style.cssText = `
+          width: 100%;
+          min-height: 120px;
+          padding: 8px;
+          border: 1px solid var(--jp-border-color2);
+          border-radius: 4px;
+          background: var(--jp-layout-color1);
+          color: var(--jp-ui-font-color1);
+          font-family: var(--jp-ui-font-family);
+          font-size: 13px;
+          resize: vertical;
+          box-sizing: border-box;
+        `;
+             
+
+
+        const systemPromptheader: HTMLHeadingElement = document.createElement("h1");
+        systemPromptheader.textContent = "Systemprompt:";
+
+        const userPromptheader: HTMLHeadingElement = document.createElement("h1");
+        userPromptheader.textContent = "Userprompt";
+        const userPromptExplanation: HTMLParagraphElement = document.createElement("p");
+        userPromptExplanation.textContent = "Benutzbare Variablen: Zellen Id der ausgewählten Zelle: {cell_id}, Code Ausschnitt bis zur Aufgabe: {Notebook_Ausschnitt}"
+        const questionPromptExplanation: HTMLParagraphElement = document.createElement("p");
+        questionPromptExplanation.textContent = "Benutzbare Variablen: Zellen Id der ausgewählten Zelle: {cell_id}, Code Ausschnitt bis zur Aufgabe: {context_code}, Fragentext: {question}";
+
+        const questionHeader: HTMLHeadingElement = document.createElement("h1");
+        questionHeader.textContent = "Nachfrage";
+
+        const sendQuestionPrompt = document.createElement('button');
+        sendQuestionPrompt.textContent = 'Nachfrage abschicken';
+        sendQuestionPrompt.style.cssText = `
+          margin-top: 8px;
+          padding: 6px 12px;
+          background-color: var(--jp-brand-color1);
+          color: white;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+        `;
+        const sendPromptButton = document.createElement('button');
+        sendPromptButton.textContent = 'Send Prompt';
+        sendPromptButton.style.cssText = `
+          margin-top: 8px;
+          padding: 6px 12px;
+          background-color: var(--jp-brand-color1);
+          color: white;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+        `;
+        sendPromptButton.onclick = async () => {
+          const currentNotebook = this.notebookTracker.currentWidget;
+
+          if (currentNotebook && currentNotebook.content.activeCell) {
+          const activeCell = currentNotebook.content.activeCell;
+          
+          try {
+            const notebookModel = currentNotebook.content.model;
+            if (notebookModel) {
+                const username_list = window.location.pathname.split("/");
+                const username = username_list[2];
+                const userPrompt = userPromptArea.value;
+                const systemPrompt = systemPromptArea.value
+
+                const baseUrl = AUTH_URL + '/sendSinglePrompt';
+                const notebookContext = currentNotebook.context;
+                const fileName = notebookContext.localPath; 
+                const id: string = activeCell.model.sharedModel.id;
+                const notebookData: any = notebookModel.toJSON();     
+                const response: any = await fetch(baseUrl, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  noteBookText: notebookData.cells,
+                  cellId: id,
+                  fileName: fileName,
+                  userName: username,
+                  userPrompt: userPrompt,
+                  systemPrompt: systemPrompt
+                }),
+              });
+              const res = await response.json();
+              messages = res.messages;
+              let text = "";
+              if(messages === undefined) {
+                text = "AI Tutor ist nicht erreichbar"
+              } else {
+                text = messages[messages.length - 1].content;
+              }
+              resultContainer.style.display = 'block';
+              resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
+              
+            }
+            } catch (error) {
+              console.error('Fehler beim Zugriff auf Zelle:', error);
+            }
+          }
+        }
+
+        sendQuestionPrompt.onclick = async () => {
+          const question = textarea.value.trim();
+          if (!question) {
+            alert('Bitte gib eine Frage ein.');
+            return;
+          }
+          const prompt = questionArea.value.trim();
+          if (!prompt) {
+            alert('Bitte gib einen Prompt ein.');
+            return;
+          }
+          const currentNotebook = this.notebookTracker.currentWidget;
+          if (currentNotebook && currentNotebook.content.activeCell) {
+            try {
+              const notebookModel = currentNotebook.content.model;
+              if (notebookModel) {
+                const baseUrl = AUTH_URL + '/nachfrageAdmin';
+                const message = {
+                  "role": "user",
+                  "content": prompt
+                };
+                const username_list = window.location.pathname.split("/");
+                const username = username_list[2];
+                const notebookData: any = notebookModel.toJSON();     
+                const activeCell = currentNotebook.content.activeCell;
+                const id: string = activeCell.model.sharedModel.id;
+                messages.push(message);
+                const response: any = await fetch(baseUrl, {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    messages: messages,
+                    cellId: id,
+                    noteBookText: notebookData.cells,
+                    userName: username,
+                    question: question
+                  }),
+                });
+                
+                const res = await response.json();
+                messages = res.messages;
+                let text = "";
+                if(messages === undefined) {
+                  text = "AI Tutor ist nicht erreichbar"
+                } else {
+                  text = messages[messages.length - 1].content;
+                }
+                resultContainer.style.display = 'block';
+                resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
+                followUpButton.disabled = false;
+                // Textfeld leeren nach erfolgreicher Anfrage
+                textarea.value = '';
+              }
+            } catch (error) {
+              followUpButton.disabled = false;
+              console.error('Fehler beim Zugriff auf Zelle:', error);
+            }
+          }
+        }
+
+        try {
+          const username_list = window.location.pathname.split("/");
+          const username = username_list[2];
+          const adminUrl = AUTH_URL + '/get_current_prompts?username=' + username;
+          const adminResponse: any = await fetch(adminUrl, {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
+          const data = await adminResponse.json();
+          console.log(data)
+          console.log(data.value)
+          console.log(data.Object)
+
+          console.log(data.systemPrompt);
+          systemPromptArea.value = data.systemPrompt;
+          userPromptArea.value = data.userPrompt;
+          questionArea.value = data.nachfrage;
+        } catch (error) {
+          button.disabled = false;
+          console.error('Fehler beim Zugriff auf Zelle:', error);
+        }
+        this.followUpContainer.appendChild(systemPromptheader);
+        this.followUpContainer.appendChild(systemPromptArea);
+        this.followUpContainer.appendChild(userPromptheader);
+        this.followUpContainer.appendChild(userPromptExplanation);
+        this.followUpContainer.appendChild(userPromptArea);
+        this.followUpContainer.appendChild(sendPromptButton);
+        this.followUpContainer.appendChild(questionHeader);
+        this.followUpContainer.appendChild(questionPromptExplanation);
+        this.followUpContainer.appendChild(questionArea);
+        this.followUpContainer.appendChild(sendQuestionPrompt);
+      }
+
       button.onclick = async () => {
         button.disabled = true;
         setTimeout(() => {
@@ -352,10 +583,6 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
           const activeCell = currentNotebook.content.activeCell;
           
           try {
-            let task = String(activeCell.model.metadata.task);
-            if (task === "undefined") {
-              task = "";
-            }
             const notebookModel = currentNotebook.content.model;
             if (notebookModel) {
               const notebookData: any = notebookModel.toJSON();     
@@ -387,8 +614,6 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
               }
               button.disabled = false;
               resultContainer.style.display = 'block';
-              lastFeedbackText = "";
-              lastFeedbackText = lastFeedbackText + "Antwort: \n" + "\"\"\""+ this.escapeHtml(text) + "\"\"\"\n";
               resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
               
               if (this.followUpContainer) {
@@ -401,7 +626,9 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
           }
         }
       };
-
+      if (this.followUpContainer) {
+        this.followUpContainer.style.display = 'block';
+      }
       const buttonContainer = document.createElement('div');
       buttonContainer.appendChild(button);
       content.appendChild(buttonContainer);
@@ -424,8 +651,9 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
     activate: async (app: JupyterFrontEnd, restorer: ILayoutRestorer, notebookTracker: INotebookTracker) => {
 
       // Authentifikation prüfen
-      const isAuthenticated = await authenticateUser();
-      
+      const isAuthenticatedObject: any = await authenticateUser();
+      const isAuthenticated = isAuthenticatedObject.user_found;
+      const isAdmin = isAuthenticatedObject.is_admin;
       if (!isAuthenticated) {
         console.error('Authentifikation fehlgeschlagen - Plugin wird nicht geladen');
         return;
@@ -455,8 +683,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
       } else {
         console.error('Fehler beim Abrufen der fehlenden Dateien:', response.statusText);
       }
-
-      const helpWidget = new HelpWidget(app, notebookTracker);
+      const helpWidget = new HelpWidget(app, notebookTracker, isAdmin);
       restorer.add(helpWidget, helpWidget.id);
 
       app.commands.addCommand('gdds:open-help', {
