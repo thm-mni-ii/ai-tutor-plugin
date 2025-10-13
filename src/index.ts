@@ -20,6 +20,9 @@ import {
 
   let taskFiles: folder[] = [];
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 45000);
+
   interface folder {
     name: String,
     files: String[]
@@ -157,7 +160,8 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'
-        }
+        },
+        signal: controller.signal
       });
       if (response.ok) {
         const result = await response.json();
@@ -165,9 +169,13 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
       }
       
       return false;
-    } catch (error) {
-      console.error('Authentifikationsfehler:', error);
-      return false;
+    } catch (networkError: any) {
+      if (networkError.name === 'AbortError') {
+        throw new Error('Anfragezeit überschritten. Bitte versuchen Sie es erneut.');
+      }
+      throw new Error('Netzwerkfehler: ' + networkError.message);
+    } finally {
+        clearTimeout(timeoutId);
     }
   }
 
@@ -280,9 +288,11 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
         }
 
         followUpButton.disabled = true;
+        button.disabled = true;
         setTimeout(() => {
+          button.disabled = false;
           followUpButton.disabled = false;
-        }, 30000);
+        }, 45000);
 
         resultContainer.style.display = 'block';
         resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">Ich denke gerade nach...</code>`.trim();
@@ -303,7 +313,10 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
               const id: string = activeCell.model.sharedModel.id;
 
               messages.push(message);
-              const response: any = await fetch(baseUrl, {
+              let text = "";
+
+              try {
+                const response: any = await fetch(baseUrl, {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
@@ -313,21 +326,43 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                   cellId: id,
                   noteBookText: notebookData.cells,
                 }),
+                signal: controller.signal
               });
-              
+
+              if (!response.ok) {
+                text = "AI Tutor ist nicht erreichbar."
+                throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
+              }
               const res = await response.json();
-              messages = res.messages;
-              let text = "";
-              if(messages === undefined) {
-                text = "AI Tutor ist nicht erreichbar"
+
+              if (!res || !Array.isArray(res.messages) || res.messages.length === 0) {
+                  text = "Ungültige Antwort vom AI Tutor erhalten";
               } else {
-                text = messages[messages.length - 1].content;
+                  const lastMessage = res.messages[res.messages.length - 1];
+                  text = lastMessage?.content || "Keine Inhalte in der Antwort";
               }
               resultContainer.style.display = 'block';
               resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
+              button.disabled = false;
               followUpButton.disabled = false;
-              // Textfeld leeren nach erfolgreicher Anfrage
               textarea.value = '';
+              } catch (networkError: any) {
+                if (networkError.name === 'AbortError') {
+                  text = "Anfragezeit überschritten. Bitte versuchen Sie es erneut.";
+                  resultContainer.style.display = 'block';
+                  resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
+                  throw new Error('Anfragezeit überschritten. Bitte versuchen Sie es erneut.');
+                }
+                text = "AI Tutor ist nicht erreichbar.";
+                resultContainer.style.display = 'block';
+                resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
+                followUpButton.disabled = false;
+                throw new Error('Netzwerkfehler: ' + networkError.message);
+              } finally {
+                  followUpButton.disabled = false;
+                  button.disabled = false;
+                  clearTimeout(timeoutId);
+              }
             }
           } catch (error) {
             followUpButton.disabled = false;
@@ -431,47 +466,69 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
           try {
             const notebookModel = currentNotebook.content.model;
             if (notebookModel) {
-                const username_list = window.location.pathname.split("/");
-                const username = username_list[2];
-                const userPrompt = userPromptArea.value;
-                const systemPrompt = systemPromptArea.value
-
-                const baseUrl = AUTH_URL + '/sendSinglePrompt';
-                const notebookContext = currentNotebook.context;
-                const fileName = notebookContext.localPath; 
-                const id: string = activeCell.model.sharedModel.id;
-                const notebookData: any = notebookModel.toJSON();     
-                const response: any = await fetch(baseUrl, {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                  noteBookText: notebookData.cells,
-                  cellId: id,
-                  fileName: fileName,
-                  userName: username,
-                  userPrompt: userPrompt,
-                  systemPrompt: systemPrompt
-                }),
-              });
-              const res = await response.json();
-              messages = res.messages;
               let text = "";
-              if(messages === undefined) {
-                text = "AI Tutor ist nicht erreichbar"
-              } else {
-                text = messages[messages.length - 1].content;
+              const username_list = window.location.pathname.split("/");
+              const username = username_list[2];
+              const userPrompt = userPromptArea.value;
+              const systemPrompt = systemPromptArea.value
+
+              const baseUrl = AUTH_URL + '/sendSinglePrompt';
+              const id: string = activeCell.model.sharedModel.id;
+              const notebookData: any = notebookModel.toJSON();  
+              try {
+                const response: any = await fetch(baseUrl, {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    noteBookText: notebookData.cells,
+                    systemPrompt: systemPrompt,
+                    userName: username,
+                    userPrompt: userPrompt,
+                    cellId: id,
+                  }),
+                  signal: controller.signal
+                });
+
+                if (!response.ok) {
+                  text = "AI Tutor ist nicht erreichbar."
+                  throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
+                }
+                const res = await response.json();
+                console.log(res);
+                if (!res || !Array.isArray(res.messages) || res.messages.length === 0) {
+                    text = "Ungültige Antwort vom AI Tutor erhalten";
+                } else {
+                    const lastMessage = res.messages[res.messages.length - 1];
+                    text = lastMessage?.content || "Keine Inhalte in der Antwort";
+                }
+                resultContainer.style.display = 'block';
+                resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
+                followUpButton.disabled = false;
+                textarea.value = '';
+              } catch (networkError: any) {
+                if (networkError.name === 'AbortError') {
+                  text = "Anfragezeit überschritten. Bitte versuchen Sie es erneut.";
+                  resultContainer.style.display = 'block';
+                  resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
+                  followUpButton.disabled = false;
+                  throw new Error('Anfragezeit überschritten. Bitte versuchen Sie es erneut.');
+                }
+                text = "AI Tutor ist nicht erreichbar.";
+                resultContainer.style.display = 'block';
+                resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
+                throw new Error('Netzwerkfehler: ' + networkError.message);
+              } finally {
+                  followUpButton.disabled = false;
+                  clearTimeout(timeoutId);
               }
-              resultContainer.style.display = 'block';
-              resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
-              
             }
-            } catch (error) {
-              console.error('Fehler beim Zugriff auf Zelle:', error);
-            }
+          } catch (error) {
+            console.error('Fehler beim Zugriff auf Zelle:', error);
           }
         }
+      }
 
         sendQuestionPrompt.onclick = async () => {
           const question = textarea.value.trim();
@@ -500,33 +557,55 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                 const activeCell = currentNotebook.content.activeCell;
                 const id: string = activeCell.model.sharedModel.id;
                 messages.push(message);
-                const response: any = await fetch(baseUrl, {
-                  method: "POST",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({
-                    messages: messages,
-                    cellId: id,
-                    noteBookText: notebookData.cells,
-                    userName: username,
-                    question: question
-                  }),
-                });
-                
-                const res = await response.json();
-                messages = res.messages;
                 let text = "";
-                if(messages === undefined) {
-                  text = "AI Tutor ist nicht erreichbar"
-                } else {
-                  text = messages[messages.length - 1].content;
+                try {
+                  const response: any = await fetch(baseUrl, {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      messages: messages,
+                      cellId: id,
+                      noteBookText: notebookData.cells,
+                      userName: username,
+                      question: question
+                    }),
+                    signal: controller.signal
+                  });
+
+                  if (!response.ok) {
+                    text = "AI Tutor ist nicht erreichbar."
+                    throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
+                  }
+                  const res = await response.json();
+
+                  if (!res || !Array.isArray(res.messages) || res.messages.length === 0) {
+                      text = "Ungültige Antwort vom AI Tutor erhalten";
+                  } else {
+                      const lastMessage = res.messages[res.messages.length - 1];
+                      text = lastMessage?.content || "Keine Inhalte in der Antwort";
+                  }
+                  resultContainer.style.display = 'block';
+                  resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
+                  followUpButton.disabled = false;
+                  textarea.value = '';
+                } catch (networkError: any) {
+                  if (networkError.name === 'AbortError') {
+                    text = "Anfragezeit überschritten. Bitte versuchen Sie es erneut.";
+                    resultContainer.style.display = 'block';
+                    resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
+                    followUpButton.disabled = false;
+                    throw new Error('Anfragezeit überschritten. Bitte versuchen Sie es erneut.');
+                  }
+                  text = "AI Tutor ist nicht erreichbar.";
+                  resultContainer.style.display = 'block';
+                  resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
+                  throw new Error('Netzwerkfehler: ' + networkError.message);
+                } finally {
+                    followUpButton.disabled = false;
+                    clearTimeout(timeoutId);
                 }
-                resultContainer.style.display = 'block';
-                resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
-                followUpButton.disabled = false;
-                // Textfeld leeren nach erfolgreicher Anfrage
-                textarea.value = '';
               }
             } catch (error) {
               followUpButton.disabled = false;
@@ -539,23 +618,42 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
           const username_list = window.location.pathname.split("/");
           const username = username_list[2];
           const adminUrl = AUTH_URL + '/get_current_prompts?username=' + username;
-          const adminResponse: any = await fetch(adminUrl, {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-            },
-          });
-          const data = await adminResponse.json();
-          console.log(data)
-          console.log(data.value)
-          console.log(data.Object)
+          try {
 
-          console.log(data.systemPrompt);
-          systemPromptArea.value = data.systemPrompt;
-          userPromptArea.value = data.userPrompt;
-          questionArea.value = data.nachfrage;
+            const adminResponse: any = await fetch(adminUrl, {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              signal: controller.signal
+            });
+
+            if (!adminResponse.ok) {
+              systemPromptArea.value = "AI Tutor ist nicht erreichbar."
+              throw new Error(`HTTP error! status: ${adminResponse.status} - ${adminResponse.statusText}`);
+            }
+            const data = await adminResponse.json();
+            console.log(data)
+            if (!data || data.length === 0) {
+              systemPromptArea.value = "Fehler beim Laden der Prompts";
+              userPromptArea.value = "Fehler beim Laden der Prompts";
+              questionArea.value = "Fehler beim Laden der Prompts";
+            } else {
+              systemPromptArea.value = data.systemPrompt;
+              userPromptArea.value = data.userPrompt;
+              questionArea.value = data.nachfrage;
+            }
+          } catch (networkError: any) {
+            if (networkError.name === 'AbortError') {
+              systemPromptArea.value = "Anfragezeit überschritten. Bitte versuchen Sie es erneut.";
+              throw new Error('Anfragezeit überschritten. Bitte versuchen Sie es erneut.');
+            }
+            systemPromptArea.value = "AI Tutor ist nicht erreichbar.";
+            throw new Error('Netzwerkfehler: ' + networkError.message);
+          } finally {
+              clearTimeout(timeoutId);
+          }
         } catch (error) {
-          button.disabled = false;
           console.error('Fehler beim Zugriff auf Zelle:', error);
         }
         this.followUpContainer.appendChild(systemPromptheader);
@@ -572,7 +670,9 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
 
       button.onclick = async () => {
         button.disabled = true;
+          followUpButton.disabled = true;
         setTimeout(() => {
+          followUpButton.disabled = false;
           button.disabled = false;
         }, 30000);
         resultContainer.style.display = 'block';
@@ -613,6 +713,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                 text = messages[messages.length - 1].content;
               }
               button.disabled = false;
+              followUpButton.disabled = false;
               resultContainer.style.display = 'block';
               resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
               
@@ -622,6 +723,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
             }
           } catch (error) {
             button.disabled = false;
+            followUpButton.disabled = false;
             console.error('Fehler beim Zugriff auf Zelle:', error);
           }
         }
@@ -652,6 +754,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
 
       // Authentifikation prüfen
       const isAuthenticatedObject: any = await authenticateUser();
+      console.log(isAuthenticatedObject)
       const isAuthenticated = isAuthenticatedObject.user_found;
       const isAdmin = isAuthenticatedObject.is_admin;
       if (!isAuthenticated) {
@@ -664,24 +767,32 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
       taskFiles = await loadTaskFiles();
 
       const baseUrl = AUTH_URL + '/get_missing_files';
-      const response = await fetch(`${baseUrl}`, {
-          method: 'POST',
-          headers: {
-              'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(taskFiles)
-      });
-
-      if (response.ok) {
-        try {
-          const missingFiles: MissingFilesResponse = await response.json();
-          
-          await saveMissingFiles(missingFiles);
-        } catch (error) {
-          console.error('Fehler beim Verarbeiten der Server-Antwort:', error);
+      try {
+        const response = await fetch(`${baseUrl}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(taskFiles)
+        });
+        if (response.ok) {
+          try {
+            const missingFiles: MissingFilesResponse = await response.json();
+            
+            await saveMissingFiles(missingFiles);
+          } catch (error) {
+            console.error('Fehler beim Verarbeiten der Server-Antwort:', error);
+          }
+        } else {
+          console.error('Fehler beim Abrufen der fehlenden Dateien:', response.statusText);
         }
-      } else {
-        console.error('Fehler beim Abrufen der fehlenden Dateien:', response.statusText);
+      } catch (networkError: any) {
+        if (networkError.name === 'AbortError') {
+          throw new Error('Anfragezeit überschritten. Bitte versuchen Sie es erneut.');
+        }
+        throw new Error('Netzwerkfehler: ' + networkError.message);
+      } finally {
+          clearTimeout(timeoutId);
       }
       const helpWidget = new HelpWidget(app, notebookTracker, isAdmin);
       restorer.add(helpWidget, helpWidget.id);
