@@ -191,6 +191,8 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
     private followUpContainer: HTMLDivElement | null = null;
     private isAdmin: boolean = false;
     private buttons: HTMLButtonElement[];
+    private currentCellId: string | null;
+
 
     constructor(app: JupyterFrontEnd, notebookTracker: INotebookTracker, isAdmin: boolean) {
       super();
@@ -202,6 +204,8 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
       this.title.caption = 'AI Tutor Hilfe und Dokumentation';
       this.isAdmin = isAdmin;
       this.buttons = []
+      this.currentCellId = null;
+      this.setupCellTracking(app);
       this.createContent();
     }
 
@@ -312,8 +316,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                 "content": question
               };
               const notebookData: any = notebookModel.toJSON();     
-              const activeCell = currentNotebook.content.activeCell;
-              const id: string = activeCell.model.sharedModel.id;
+              const id: string | null = this.currentCellId;
 
               messages.push(message);
               let text = "";
@@ -472,9 +475,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
           });
           const currentNotebook = this.notebookTracker.currentWidget;
 
-          if (currentNotebook && currentNotebook.content.activeCell) {
-          const activeCell = currentNotebook.content.activeCell;
-          
+          if (currentNotebook && currentNotebook.content.activeCell) {          
           try {
             const notebookModel = currentNotebook.content.model;
             if (notebookModel) {
@@ -485,7 +486,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
               const systemPrompt = systemPromptArea.value
 
               const baseUrl = AUTH_URL + '/sendSinglePrompt';
-              const id: string = activeCell.model.sharedModel.id;
+              const id: string | null = this.currentCellId;
               const notebookData: any = notebookModel.toJSON();  
               try {
                 const response: any = await fetch(baseUrl, {
@@ -572,8 +573,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                 const username_list = window.location.pathname.split("/");
                 const username = username_list[2];
                 const notebookData: any = notebookModel.toJSON();     
-                const activeCell = currentNotebook.content.activeCell;
-                const id: string = activeCell.model.sharedModel.id;
+                const id: string | null = this.currentCellId;
                 messages.push(message);
                 let text = "";
                 try {
@@ -708,18 +708,18 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
         const currentNotebook = this.notebookTracker.currentWidget;
 
         if (currentNotebook && currentNotebook.content.activeCell) {
-          const activeCell = currentNotebook.content.activeCell;
-          
+        
           try {
             const notebookModel = currentNotebook.content.model;
             if (notebookModel) {
               const notebookData: any = notebookModel.toJSON();     
               const username_list = window.location.pathname.split("/");
               const username = username_list[2];
-              const id: string = activeCell.model.sharedModel.id;
               const baseUrl = AUTH_URL + '/generateAndSendPrompt';
               const notebookContext = currentNotebook.context;
               const fileName = notebookContext.localPath; 
+              const id: string | null = this.currentCellId;
+              console.log(id)
               const response: any = await fetch(baseUrl, {
                 method: "POST",
                 headers: {
@@ -774,6 +774,40 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
       div.textContent = text;
       return div.innerHTML;
     }
+    private setupCellTracking(app: JupyterFrontEnd): void {
+      const commands = app.commands;
+
+      // 1️⃣ Watch for run commands
+      commands.commandExecuted.connect((_, args) => {
+        if (args.id === 'notebook:run-cell-and-select-next') {
+          const currentNotebook = this.notebookTracker.currentWidget?.content
+          const newCell = currentNotebook?.activeCell;
+          if (!currentNotebook || !newCell) {
+            this.currentCellId = null;
+            return;
+          }
+          const index = currentNotebook.widgets.indexOf(newCell);
+          const previousCell = currentNotebook.widgets[index - 1];
+          this.currentCellId = previousCell.model.id
+          console.log('📌 Tracking previous cell after run-select-next:', this.currentCellId);
+        } 
+      });
+
+      // 2️⃣ Watch for selection changes
+      this.notebookTracker.activeCellChanged.connect(() => {
+        const currentNotebook = this.notebookTracker.currentWidget?.content;
+        const newCell = currentNotebook?.activeCell;
+        if (!currentNotebook || !newCell) {
+          this.currentCellId = null;
+          return;
+        }
+        this.currentCellId = newCell.model.id;
+        console.log('📌 Current selected cell:', this.currentCellId);
+      });
+
+      console.log('✅ Cell tracking initialized.');
+    }
+
   }
 
   const plugin: JupyterFrontEndPlugin<void> = {
