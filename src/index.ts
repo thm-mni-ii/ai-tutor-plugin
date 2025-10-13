@@ -153,7 +153,6 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
       const url = new URL(AUTH_URL + "/authenticate");
       const username_list = window.location.pathname.split("/");
       const username = username_list[2]
-
       const decodedUsername = decodeURIComponent(username);
       url.searchParams.append('username', decodedUsername);
       const response = await fetch(url.toString(), {
@@ -191,6 +190,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
     private notebookTracker: INotebookTracker;
     private followUpContainer: HTMLDivElement | null = null;
     private isAdmin: boolean = false;
+    private buttons: HTMLButtonElement[];
 
     constructor(app: JupyterFrontEnd, notebookTracker: INotebookTracker, isAdmin: boolean) {
       super();
@@ -201,6 +201,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
       this.title.icon = robotIcon;
       this.title.caption = 'AI Tutor Hilfe und Dokumentation';
       this.isAdmin = isAdmin;
+      this.buttons = []
       this.createContent();
     }
 
@@ -278,7 +279,8 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
         border-radius: 4px;
         cursor: pointer;
       `;
-
+      this.buttons.push(followUpButton);
+      this.buttons.push(button);
 
       followUpButton.onclick = async () => {
         const question = textarea.value.trim();
@@ -286,12 +288,13 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
           alert('Bitte gib eine Frage ein.');
           return;
         }
-
-        followUpButton.disabled = true;
-        button.disabled = true;
+        this.buttons.forEach((button) => {
+          button.disabled = true;
+        });
         setTimeout(() => {
-          button.disabled = false;
-          followUpButton.disabled = false;
+          this.buttons.forEach((button) => {
+            button.disabled = false;
+          });
         }, 45000);
 
         resultContainer.style.display = 'block';
@@ -343,8 +346,9 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
               }
               resultContainer.style.display = 'block';
               resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
-              button.disabled = false;
-              followUpButton.disabled = false;
+              this.buttons.forEach((button) => {
+                button.disabled = false;
+              });
               textarea.value = '';
               } catch (networkError: any) {
                 if (networkError.name === 'AbortError') {
@@ -356,17 +360,22 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                 text = "AI Tutor ist nicht erreichbar.";
                 resultContainer.style.display = 'block';
                 resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
-                followUpButton.disabled = false;
+                this.buttons.forEach((button) => {
+                  button.disabled = false;
+                });
                 throw new Error('Netzwerkfehler: ' + networkError.message);
               } finally {
-                  followUpButton.disabled = false;
-                  button.disabled = false;
+                  this.buttons.forEach((button) => {
+                    button.disabled = false;
+                  });
                   clearTimeout(timeoutId);
               }
             }
           } catch (error) {
-            followUpButton.disabled = false;
-            console.error('Fehler beim Zugriff auf Zelle:', error);
+              this.buttons.forEach((button) => {
+                button.disabled = false;
+              });
+              console.error('Fehler beim Zugriff auf Zelle:', error);
           }
         }
       };
@@ -458,6 +467,9 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
           cursor: pointer;
         `;
         sendPromptButton.onclick = async () => {
+          this.buttons.forEach((button) => {
+            button.disabled = true;
+          });
           const currentNotebook = this.notebookTracker.currentWidget;
 
           if (currentNotebook && currentNotebook.content.activeCell) {
@@ -505,14 +517,18 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                 }
                 resultContainer.style.display = 'block';
                 resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
-                followUpButton.disabled = false;
+                this.buttons.forEach((button) => {
+                  button.disabled = false;
+                });       
                 textarea.value = '';
               } catch (networkError: any) {
                 if (networkError.name === 'AbortError') {
                   text = "Anfragezeit überschritten. Bitte versuchen Sie es erneut.";
                   resultContainer.style.display = 'block';
                   resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
-                  followUpButton.disabled = false;
+                  this.buttons.forEach((button) => {
+                    button.disabled = false;
+                  });
                   throw new Error('Anfragezeit überschritten. Bitte versuchen Sie es erneut.');
                 }
                 text = "AI Tutor ist nicht erreichbar.";
@@ -520,7 +536,9 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                 resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
                 throw new Error('Netzwerkfehler: ' + networkError.message);
               } finally {
-                  followUpButton.disabled = false;
+                  this.buttons.forEach((button) => {
+                    button.disabled = false;
+                  });
                   clearTimeout(timeoutId);
               }
             }
@@ -588,14 +606,18 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                   }
                   resultContainer.style.display = 'block';
                   resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
-                  followUpButton.disabled = false;
+                  this.buttons.forEach((button) => {
+                    button.disabled = false;
+                  });       
                   textarea.value = '';
                 } catch (networkError: any) {
                   if (networkError.name === 'AbortError') {
                     text = "Anfragezeit überschritten. Bitte versuchen Sie es erneut.";
                     resultContainer.style.display = 'block';
                     resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
-                    followUpButton.disabled = false;
+                    this.buttons.forEach((button) => {
+                      button.disabled = false;
+                    });       
                     throw new Error('Anfragezeit überschritten. Bitte versuchen Sie es erneut.');
                   }
                   text = "AI Tutor ist nicht erreichbar.";
@@ -603,12 +625,16 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                   resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
                   throw new Error('Netzwerkfehler: ' + networkError.message);
                 } finally {
-                    followUpButton.disabled = false;
-                    clearTimeout(timeoutId);
+                  this.buttons.forEach((button) => {
+                    button.disabled = false;
+                  });         
+                  clearTimeout(timeoutId);
                 }
               }
             } catch (error) {
-              followUpButton.disabled = false;
+              this.buttons.forEach((button) => {
+                button.disabled = false;
+              });
               console.error('Fehler beim Zugriff auf Zelle:', error);
             }
           }
@@ -669,12 +695,14 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
       }
 
       button.onclick = async () => {
-        button.disabled = true;
-          followUpButton.disabled = true;
+        this.buttons.forEach((button) => {
+          button.disabled = true;
+        });       
         setTimeout(() => {
-          followUpButton.disabled = false;
+        this.buttons.forEach((button) => {
           button.disabled = false;
-        }, 30000);
+        });       
+        }, 45000);
         resultContainer.style.display = 'block';
         resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">Ich denke gerade nach...</code>`.trim();
         const currentNotebook = this.notebookTracker.currentWidget;
@@ -712,8 +740,9 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
               } else {
                 text = messages[messages.length - 1].content;
               }
-              button.disabled = false;
-              followUpButton.disabled = false;
+              this.buttons.forEach((button) => {
+                button.disabled = false;
+              });  
               resultContainer.style.display = 'block';
               resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
               
@@ -722,8 +751,9 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
               }
             }
           } catch (error) {
-            button.disabled = false;
-            followUpButton.disabled = false;
+            this.buttons.forEach((button) => {
+              button.disabled = false;
+            });  
             console.error('Fehler beim Zugriff auf Zelle:', error);
           }
         }
