@@ -217,12 +217,12 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
         </h3>
         <p style="color: var(--jp-ui-font-color2); font-size: 13px;">
           Der AI Tutor hilft dir mit Feedback beim Lösen der Aufgaben.
-          Wähle die gewünschte Zelle (Aufgabenblock oder Codeblock) aus und drücke den Knopf "Feedback generieren".
+          Wähle die gewünschte Zelle (Aufgabenblock oder Codeblock) aus und drücke den Knopf "Feedback zur aktuellen Zelle".
         </p>
       `;
 
       const button = document.createElement('button');
-      button.textContent = 'Feedback generieren';
+      button.textContent = 'Feedback zur aktuellen Zelle';
       button.style.cssText = `
         padding: 6px 12px;
         background-color: var(--jp-brand-color1);
@@ -256,7 +256,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
       `;
 
       const textarea = document.createElement('textarea');
-      textarea.placeholder = 'Stelle eine Folgefrage...';
+      textarea.placeholder = 'Stelle eine Rückfrage zu obiger Antwort...';
       textarea.style.cssText = `
         width: 100%;
         min-height: 80px;
@@ -273,7 +273,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
 
  
       const followUpButton = document.createElement('button');
-      followUpButton.textContent = 'Frage senden';
+      followUpButton.textContent = 'Rückfrage zu obiger Antwort';
       followUpButton.style.cssText = `
         margin-top: 8px;
         padding: 6px 12px;
