@@ -151,9 +151,8 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
   async function authenticateUser(): Promise<boolean> {
     try {
       const url = new URL(AUTH_URL + "/authenticate");
-      //const username_list = window.location.pathname.split("/");
-      //const username = username_list[2]
-      const username = "jhws42"
+      const username_list = window.location.pathname.split("/");
+      const username = username_list[2]
       const decodedUsername = decodeURIComponent(username);
       url.searchParams.append('username', decodedUsername);
       const response = await fetch(url.toString(), {
@@ -481,9 +480,8 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
             const notebookModel = currentNotebook.content.model;
             if (notebookModel) {
               let text = "";
-              //const username_list = window.location.pathname.split("/");
-              //const username = username_list[2]
-              const username = "jhws42"
+              const username_list = window.location.pathname.split("/");
+              const username = username_list[2]
               const userPrompt = userPromptArea.value;
               const systemPrompt = systemPromptArea.value
 
@@ -572,9 +570,8 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                   "role": "user",
                   "content": prompt
                 };
-                //const username_list = window.location.pathname.split("/");
-                //const username = username_list[2]
-                const username = "jhws42"
+                const username_list = window.location.pathname.split("/");
+                const username = username_list[2]
                 const notebookData: any = notebookModel.toJSON();     
                 const id: string | null = this.currentCellId;
                 messages.push(message);
@@ -644,9 +641,8 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
         }
 
         try {
-          //const username_list = window.location.pathname.split("/");
-          //const username = username_list[2]
-          const username = "jhws42"
+          const username_list = window.location.pathname.split("/");
+          const username = username_list[2]
           const adminUrl = AUTH_URL + '/get_current_prompts?username=' + username;
           try {
 
@@ -717,9 +713,8 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
             const notebookModel = currentNotebook.content.model;
             if (notebookModel) {
               const notebookData: any = notebookModel.toJSON();     
-              //const username_list = window.location.pathname.split("/");
-              //const username = username_list[2]
-              const username = "jhws42"
+              const username_list = window.location.pathname.split("/");
+              const username = username_list[2]
               const baseUrl = AUTH_URL + '/generateAndSendPrompt';
               const notebookContext = currentNotebook.context;
               const fileName = notebookContext.localPath; 
@@ -808,24 +803,6 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
         }
         this.currentCellId = newCell.model.id;
         console.log('📌 Current selected cell:', this.currentCellId);
-      });
-      this.notebookTracker.currentChanged.connect(() => {
-        console.log("HALLO");
-
-        const currentNotebook = this.notebookTracker.currentWidget?.content;
-        console.log(currentNotebook?.activeCell);
-
-        if (!currentNotebook) return;
-        
-        currentNotebook.model?.cells.changed.connect(() => {
-          console.log("HALLO");
-          console.log(currentNotebook.activeCell);
-          const activeCell = currentNotebook.activeCell;
-          if (activeCell) {
-            this.currentCellId = activeCell.model.id;
-            console.log('📌 Cell content changed, tracking cell:', this.currentCellId);
-          }
-        });
       });
       console.log('✅ Cell tracking initialized.');
 
