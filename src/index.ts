@@ -18,6 +18,7 @@ import {
 
   const AUTH_URL = 'https://feedback.mni.thm.de/gdds';
 
+
   let taskFiles: folder[] = [];
 
   const controller = new AbortController();
@@ -512,9 +513,11 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                 console.log(res);
                 if (!res || !Array.isArray(res.messages) || res.messages.length === 0) {
                     text = "Ungültige Antwort vom AI Tutor erhalten";
+                    messages = [];
                 } else {
                     const lastMessage = res.messages[res.messages.length - 1];
                     text = lastMessage?.content || "Keine Inhalte in der Antwort";
+                    messages = res.messages;
                 }
                 resultContainer.style.display = 'block';
                 resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
@@ -720,6 +723,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
               const fileName = notebookContext.localPath; 
               const id: string | null = this.currentCellId;
               console.log(id)
+              let text = "";
               const response: any = await fetch(baseUrl, {
                 method: "POST",
                 headers: {
@@ -731,24 +735,28 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                   fileName: fileName,
                   userName: username,
                 }),
+                signal: controller.signal
               });
-              const res = await response.json();
-              messages = res.messages;
-              let text = "";
-              if(messages === undefined) {
-                text = "AI Tutor ist nicht erreichbar"
-              } else {
-                text = messages[messages.length - 1].content;
+              if (!response.ok) {
+                text = "AI Tutor ist nicht erreichbar."
+                throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
               }
-              this.buttons.forEach((button) => {
-                button.disabled = false;
-              });  
+              const res = await response.json();
+              console.log(res);
+              if (!res || !Array.isArray(res.messages) || res.messages.length === 0) {
+                  text = "Ungültige Antwort vom AI Tutor erhalten";
+                  messages = [];
+              } else {
+                  const lastMessage = res.messages[res.messages.length - 1];
+                  text = lastMessage?.content || "Keine Inhalte in der Antwort";
+                  messages = res.messages;
+              }
               resultContainer.style.display = 'block';
               resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
-              
-              if (this.followUpContainer) {
-                this.followUpContainer.style.display = 'block';
-              }
+              this.buttons.forEach((button) => {
+                button.disabled = false;
+              });       
+              textarea.value = '';
             }
           } catch (error) {
             this.buttons.forEach((button) => {
