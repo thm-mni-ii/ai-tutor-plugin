@@ -19,6 +19,7 @@ import {
   const AUTH_URL = 'https://feedback.mni.thm.de/gdds';
 
 
+
   let taskFiles: folder[] = [];
 
   const controller = new AbortController();
@@ -272,6 +273,211 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
         box-sizing: border-box;
       `;
 
+      const sheetButton = document.createElement('button');
+      sheetButton.textContent = 'Feedback zu allen Aufgaben';
+      sheetButton.style.cssText = `
+        margin-top: 8px;
+        padding: 6px 12px;
+        background-color: var(--jp-brand-color1);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      `;
+
+      sheetButton.onclick = async () => {
+        this.buttons.forEach((button) => {
+          button.disabled = true;
+        });
+        setTimeout(() => {
+          this.buttons.forEach((button) => {
+            button.disabled = false;
+          });
+        }, 45000);
+        resultContainer.style.display = 'block';
+        resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">Ich denke gerade nach...</code>`.trim();
+
+        const currentNotebook = this.notebookTracker.currentWidget;
+
+        if (currentNotebook && currentNotebook.content.activeCell) {
+          try {
+            const notebookModel = currentNotebook.content.model;
+            if (notebookModel) {
+              const notebookData: any = notebookModel.toJSON();     
+              const username_list = window.location.pathname.split("/");
+              const username = username_list[2]
+              const baseUrl = AUTH_URL + '/checkSheet';
+              const notebookContext = currentNotebook.context;
+              const fileName = notebookContext.localPath; 
+
+              let text = "";
+
+              try {
+                const response: any = await fetch(baseUrl, {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    noteBookText: notebookData.cells,
+                    fileName: fileName,
+                    userName: username,
+                  }),
+                  signal: controller.signal
+                });
+                if (!response.ok) {
+                  text = "AI Tutor ist nicht erreichbar."
+                  throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
+                }
+                const res = await response.json();
+
+                if (!res || !Array.isArray(res.messages) || res.messages.length === 0) {
+                    text = "Ungültige Antwort vom AI Tutor erhalten";
+                    messages = [];
+                } else {
+                    const lastMessage = res.messages[res.messages.length - 1];
+                    text = lastMessage?.content || "Keine Inhalte in der Antwort";
+                    messages = res.messages;
+                }
+                resultContainer.style.display = 'block';
+                resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
+                this.buttons.forEach((button) => {
+                  button.disabled = false;
+                });
+                textarea.value = '';
+              } catch (networkError: any) {
+                if (networkError.name === 'AbortError') {
+                  text = "Anfragezeit überschritten. Bitte versuchen Sie es erneut.";
+                  resultContainer.style.display = 'block';
+                  resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
+                  throw new Error('Anfragezeit überschritten. Bitte versuchen Sie es erneut.');
+                }
+                text = "AI Tutor ist nicht erreichbar.";
+                resultContainer.style.display = 'block';
+                resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
+                this.buttons.forEach((button) => {
+                  button.disabled = false;
+                });
+                throw new Error('Netzwerkfehler: ' + networkError.message);
+              } finally {
+                  this.buttons.forEach((button) => {
+                    button.disabled = false;
+                  });
+                  clearTimeout(timeoutId);
+              }
+            }
+          } catch (error) {
+              this.buttons.forEach((button) => {
+                button.disabled = false;
+              });
+              console.error('Fehler beim Zugriff auf Zelle:', error);
+          }
+        }
+      };
+
+      const taskButton = document.createElement('button');
+      taskButton.textContent = 'Feedback zur aktuellen Aufgabe';
+      taskButton.style.cssText = `
+        margin-top: 8px;
+        padding: 6px 12px;
+        background-color: var(--jp-brand-color1);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      `;
+
+      taskButton.onclick = async () => {
+        this.buttons.forEach((button) => {
+          button.disabled = true;
+        });
+        setTimeout(() => {
+          this.buttons.forEach((button) => {
+            button.disabled = false;
+          });
+        }, 45000);
+        resultContainer.style.display = 'block';
+        resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">Ich denke gerade nach...</code>`.trim();
+
+        const currentNotebook = this.notebookTracker.currentWidget;
+
+        if (currentNotebook && currentNotebook.content.activeCell) {
+          try {
+            const notebookModel = currentNotebook.content.model;
+            if (notebookModel) {
+              const notebookData: any = notebookModel.toJSON();     
+              const id: string | null = this.currentCellId;
+              const username_list = window.location.pathname.split("/");
+              const username = username_list[2]
+              const baseUrl = AUTH_URL + '/checkTask';
+              const notebookContext = currentNotebook.context;
+              const fileName = notebookContext.localPath; 
+
+              let text = "";
+
+              try {
+                const response: any = await fetch(baseUrl, {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    noteBookText: notebookData.cells,
+                    cellId: id,
+                    fileName: fileName,
+                    userName: username,
+                  }),
+                  signal: controller.signal
+                });
+                if (!response.ok) {
+                  text = "AI Tutor ist nicht erreichbar."
+                  throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
+                }
+                const res = await response.json();
+
+                if (!res || !Array.isArray(res.messages) || res.messages.length === 0) {
+                    text = "Ungültige Antwort vom AI Tutor erhalten";
+                    messages = [];
+                } else {
+                    const lastMessage = res.messages[res.messages.length - 1];
+                    text = lastMessage?.content || "Keine Inhalte in der Antwort";
+                    messages = res.messages;
+                }
+                resultContainer.style.display = 'block';
+                resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
+                this.buttons.forEach((button) => {
+                  button.disabled = false;
+                });
+                textarea.value = '';
+              } catch (networkError: any) {
+                if (networkError.name === 'AbortError') {
+                  text = "Anfragezeit überschritten. Bitte versuchen Sie es erneut.";
+                  resultContainer.style.display = 'block';
+                  resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
+                  throw new Error('Anfragezeit überschritten. Bitte versuchen Sie es erneut.');
+                }
+                text = "AI Tutor ist nicht erreichbar.";
+                resultContainer.style.display = 'block';
+                resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
+                this.buttons.forEach((button) => {
+                  button.disabled = false;
+                });
+                throw new Error('Netzwerkfehler: ' + networkError.message);
+              } finally {
+                  this.buttons.forEach((button) => {
+                    button.disabled = false;
+                  });
+                  clearTimeout(timeoutId);
+              }
+            }
+          } catch (error) {
+              this.buttons.forEach((button) => {
+                button.disabled = false;
+              });
+              console.error('Fehler beim Zugriff auf Zelle:', error);
+          }
+        }
+      };
  
       const followUpButton = document.createElement('button');
       followUpButton.textContent = 'Rückfrage zu obiger Antwort';
@@ -286,6 +492,8 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
       `;
       this.buttons.push(followUpButton);
       this.buttons.push(button);
+      this.buttons.push(sheetButton);
+      this.buttons.push(taskButton);
 
       followUpButton.onclick = async () => {
         const question = textarea.value.trim();
@@ -771,6 +979,8 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
       }
       const buttonContainer = document.createElement('div');
       buttonContainer.appendChild(button);
+      buttonContainer.appendChild(taskButton);
+      buttonContainer.appendChild(sheetButton);
       content.appendChild(buttonContainer);
       content.appendChild(resultContainer);
       content.appendChild(this.followUpContainer);
