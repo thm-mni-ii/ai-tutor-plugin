@@ -18,8 +18,6 @@ import {
 
   const AUTH_URL = 'https://feedback.mni.thm.de/gdds';
 
-
-
   let taskFiles: folder[] = [];
 
   const controller = new AbortController();
@@ -641,17 +639,95 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
           box-sizing: border-box;
         `;
              
+        const taskSystemPromptArea = document.createElement('textarea');
+        taskSystemPromptArea.style.cssText = `
+          width: 100%;
+          min-height: 240px;
+          padding: 8px;
+          border: 1px solid var(--jp-border-color2);
+          border-radius: 4px;
+          background: var(--jp-layout-color1);
+          color: var(--jp-ui-font-color1);
+          font-family: var(--jp-ui-font-family);
+          font-size: 13px;
+          resize: vertical;
+          box-sizing: border-box;
+        `;
 
+        const taskPromptArea = document.createElement('textarea');
+        taskPromptArea.style.cssText = `
+          width: 100%;
+          min-height: 240px;
+          padding: 8px;
+          border: 1px solid var(--jp-border-color2);
+          border-radius: 4px;
+          background: var(--jp-layout-color1);
+          color: var(--jp-ui-font-color1);
+          font-family: var(--jp-ui-font-family);
+          font-size: 13px;
+          resize: vertical;
+          box-sizing: border-box;
+        `;
+
+        const sheetSystemPromptArea = document.createElement('textarea');
+        sheetSystemPromptArea.style.cssText = `
+          width: 100%;
+          min-height: 240px;
+          padding: 8px;
+          border: 1px solid var(--jp-border-color2);
+          border-radius: 4px;
+          background: var(--jp-layout-color1);
+          color: var(--jp-ui-font-color1);
+          font-family: var(--jp-ui-font-family);
+          font-size: 13px;
+          resize: vertical;
+          box-sizing: border-box;
+        `;
+        
+        const sheetPromptArea = document.createElement('textarea');
+        sheetPromptArea.style.cssText = `
+          width: 100%;
+          min-height: 240px;
+          padding: 8px;
+          border: 1px solid var(--jp-border-color2);
+          border-radius: 4px;
+          background: var(--jp-layout-color1);
+          color: var(--jp-ui-font-color1);
+          font-family: var(--jp-ui-font-family);
+          font-size: 13px;
+          resize: vertical;
+          box-sizing: border-box;
+        `;
+
+        const taskPromptHeader: HTMLHeadingElement = document.createElement("h1");
+        taskPromptHeader.textContent = "Prompt für eine Aufgabe";
+
+        const sheetPromptHeader: HTMLHeadingElement = document.createElement("h1");
+        sheetPromptHeader.textContent = "Prompt für alle Aufgaben";
 
         const systemPromptheader: HTMLHeadingElement = document.createElement("h1");
         systemPromptheader.textContent = "Systemprompt:";
 
         const userPromptheader: HTMLHeadingElement = document.createElement("h1");
         userPromptheader.textContent = "Userprompt";
+        const systemTaskPromptHeader: HTMLHeadingElement = document.createElement("h1");
+        systemTaskPromptHeader.textContent = "Systemprompt:";
+
+        const userTaskPromptheader: HTMLHeadingElement = document.createElement("h1");
+        userTaskPromptheader.textContent = "Userprompt";
+        const systemSheetPromptheader: HTMLHeadingElement = document.createElement("h1");
+        systemSheetPromptheader.textContent = "Systemprompt:";
+
+        const userSheetPromptheader: HTMLHeadingElement = document.createElement("h1");
+        userSheetPromptheader.textContent = "Userprompt";
         const userPromptExplanation: HTMLParagraphElement = document.createElement("p");
         userPromptExplanation.textContent = "Benutzbare Variablen: Zellen Id der ausgewählten Zelle: {cell_id}, Code Ausschnitt bis zur Aufgabe: {Notebook_Ausschnitt}"
         const questionPromptExplanation: HTMLParagraphElement = document.createElement("p");
         questionPromptExplanation.textContent = "Benutzbare Variablen: Zellen Id der ausgewählten Zelle: {cell_id}, Code Ausschnitt bis zur Aufgabe: {context_code}, Fragentext: {question}";
+        const taskPromptExplanation: HTMLParagraphElement = document.createElement("p");
+        taskPromptExplanation.textContent = "Benutzbare Variablen: Musterlösung für gesamtes Blatt {sheet_solution}, Code Ausschnitt der Aufgabe: {task}, Musterlösung für Aufgabe: {task_solution}"
+        const sheetPromptExplanation: HTMLParagraphElement = document.createElement("p");
+        sheetPromptExplanation.textContent = "Benutzbare Variablen: Musterlösung für gesamtes Blatt {sheet_solution}, gesamter Code: {task}, Musterlösung für Aufgabe: {task_solution}"
 
         const questionHeader: HTMLHeadingElement = document.createElement("h1");
         questionHeader.textContent = "Nachfrage";
@@ -667,6 +743,186 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
           border-radius: 4px;
           cursor: pointer;
         `;
+        const taskPromptButton = document.createElement('button');
+        taskPromptButton.textContent = 'Send Prompt for task';
+        taskPromptButton.style.cssText = `
+          margin-top: 8px;
+          padding: 6px 12px;
+          background-color: var(--jp-brand-color1);
+          color: white;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+        `;
+
+        taskPromptButton.onclick = async () => {
+          const currentNotebook = this.notebookTracker.currentWidget;
+          if (currentNotebook && currentNotebook.content.activeCell) {          
+            try {
+              const notebookModel = currentNotebook.content.model;
+              if (notebookModel) {
+                let text = "";
+                const username_list = window.location.pathname.split("/");
+                const username = username_list[2]
+                const userPrompt = taskPromptArea.value;
+                const systemPrompt = taskSystemPromptArea.value
+
+                const baseUrl = AUTH_URL + '/taskAdmin';
+                const id: string | null = this.currentCellId;
+                const notebookData: any = notebookModel.toJSON();  
+                const notebookContext = currentNotebook.context;
+                const fileName = notebookContext.localPath; 
+                try {
+                  const response: any = await fetch(baseUrl, {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      noteBookText: notebookData.cells,
+                      cellId: id,
+                      fileName: fileName,
+                      userName: username,
+                      systemPrompt: systemPrompt,
+                      userPrompt: userPrompt
+                    }),
+                    signal: controller.signal
+                  });
+
+                  if (!response.ok) {
+                    text = "AI Tutor ist nicht erreichbar."
+                    throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
+                  }
+                  const res = await response.json();
+                  if (!res || !Array.isArray(res.messages) || res.messages.length === 0) {
+                      text = "Ungültige Antwort vom AI Tutor erhalten";
+                      messages = [];
+                  } else {
+                      const lastMessage = res.messages[res.messages.length - 1];
+                      text = lastMessage?.content || "Keine Inhalte in der Antwort";
+                      messages = res.messages;
+                  }
+                  resultContainer.style.display = 'block';
+                  resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
+                  this.buttons.forEach((button) => {
+                    button.disabled = false;
+                  });       
+                  textarea.value = '';
+                } catch (networkError: any) {
+                  if (networkError.name === 'AbortError') {
+                    text = "Anfragezeit überschritten. Bitte versuchen Sie es erneut.";
+                    resultContainer.style.display = 'block';
+                    resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
+                    this.buttons.forEach((button) => {
+                      button.disabled = false;
+                    });
+                    throw new Error('Anfragezeit überschritten. Bitte versuchen Sie es erneut.');
+                  }
+                  text = "AI Tutor ist nicht erreichbar.";
+                  resultContainer.style.display = 'block';
+                  resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
+                  throw new Error('Netzwerkfehler: ' + networkError.message);
+                } finally {
+                    this.buttons.forEach((button) => {
+                      button.disabled = false;
+                    });
+                    clearTimeout(timeoutId);
+                }
+              }
+            } catch (error) {
+              console.error('Fehler beim Zugriff auf Zelle:', error);
+            }
+          }
+        }
+        const sheetPromptButton = document.createElement('button');
+        sheetPromptButton.textContent = 'Send Prompt for sheet';
+        sheetPromptButton.style.cssText = `
+          margin-top: 8px;
+          padding: 6px 12px;
+          background-color: var(--jp-brand-color1);
+          color: white;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+        `;
+        sheetPromptButton.onclick = async () => {
+          const currentNotebook = this.notebookTracker.currentWidget;
+          if (currentNotebook && currentNotebook.content.activeCell) {          
+            try {
+              const notebookModel = currentNotebook.content.model;
+              if (notebookModel) {
+                let text = "";
+                const username_list = window.location.pathname.split("/");
+                const username = username_list[2]
+                const userPrompt = taskPromptArea.value;
+                const systemPrompt = taskSystemPromptArea.value
+
+                const baseUrl = AUTH_URL + '/sheetAdmin';
+                const notebookData: any = notebookModel.toJSON();  
+                const notebookContext = currentNotebook.context;
+                const fileName = notebookContext.localPath; 
+                try {
+                  const response: any = await fetch(baseUrl, {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      noteBookText: notebookData.cells,
+                      fileName: fileName,
+                      userName: username,
+                      systemPrompt: systemPrompt,
+                      userPrompt: userPrompt
+                    }),
+                    signal: controller.signal
+                  });
+
+                  if (!response.ok) {
+                    text = "AI Tutor ist nicht erreichbar."
+                    throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
+                  }
+                  const res = await response.json();
+                  console.log(res);
+                  if (!res || !Array.isArray(res.messages) || res.messages.length === 0) {
+                      text = "Ungültige Antwort vom AI Tutor erhalten";
+                      messages = [];
+                  } else {
+                      const lastMessage = res.messages[res.messages.length - 1];
+                      text = lastMessage?.content || "Keine Inhalte in der Antwort";
+                      messages = res.messages;
+                  }
+                  resultContainer.style.display = 'block';
+                  resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
+                  this.buttons.forEach((button) => {
+                    button.disabled = false;
+                  });       
+                  textarea.value = '';
+                } catch (networkError: any) {
+                  if (networkError.name === 'AbortError') {
+                    text = "Anfragezeit überschritten. Bitte versuchen Sie es erneut.";
+                    resultContainer.style.display = 'block';
+                    resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
+                    this.buttons.forEach((button) => {
+                      button.disabled = false;
+                    });
+                    throw new Error('Anfragezeit überschritten. Bitte versuchen Sie es erneut.');
+                  }
+                  text = "AI Tutor ist nicht erreichbar.";
+                  resultContainer.style.display = 'block';
+                  resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
+                  throw new Error('Netzwerkfehler: ' + networkError.message);
+                } finally {
+                    this.buttons.forEach((button) => {
+                      button.disabled = false;
+                    });
+                    clearTimeout(timeoutId);
+                }
+              }
+            } catch (error) {
+              console.error('Fehler beim Zugriff auf Zelle:', error);
+            }
+          }
+        }
         const sendPromptButton = document.createElement('button');
         sendPromptButton.textContent = 'Send Prompt';
         sendPromptButton.style.cssText = `
@@ -874,11 +1130,18 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
             if (!data || data.length === 0) {
               systemPromptArea.value = "Fehler beim Laden der Prompts";
               userPromptArea.value = "Fehler beim Laden der Prompts";
-              questionArea.value = "Fehler beim Laden der Prompts";
+              sheetSystemPromptArea.value = "Fehler beim Laden der Prompts";
+              taskSystemPromptArea.value = "Fehler beim Laden der Prompts";
+              sheetPromptArea.value = "Fehler beim Laden der Prompts";
+              taskPromptArea.value = "Fehler beim Laden der Prompts";
             } else {
               systemPromptArea.value = data.systemPrompt;
+              sheetSystemPromptArea.value = data.systemPrompt;
+              taskSystemPromptArea.value = data.systemPrompt;
               userPromptArea.value = data.userPrompt;
               questionArea.value = data.nachfrage;
+              sheetPromptArea.value = data.sheetUserPrompt;
+              taskPromptArea.value = data.taskUserPrompt;
             }
           } catch (networkError: any) {
             if (networkError.name === 'AbortError') {
@@ -899,6 +1162,21 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
         this.followUpContainer.appendChild(userPromptExplanation);
         this.followUpContainer.appendChild(userPromptArea);
         this.followUpContainer.appendChild(sendPromptButton);
+        this.followUpContainer.appendChild(sheetPromptHeader);
+        this.followUpContainer.appendChild(systemSheetPromptheader);
+        this.followUpContainer.appendChild(sheetSystemPromptArea);
+        this.followUpContainer.appendChild(userSheetPromptheader);
+        this.followUpContainer.appendChild(sheetPromptExplanation);
+        this.followUpContainer.appendChild(sheetPromptArea);
+        this.followUpContainer.appendChild(sheetPromptButton);
+        this.followUpContainer.appendChild(sheetPromptButton);
+        this.followUpContainer.appendChild(taskPromptHeader);
+        this.followUpContainer.appendChild(systemTaskPromptHeader);
+        this.followUpContainer.appendChild(taskSystemPromptArea);
+        this.followUpContainer.appendChild(userTaskPromptheader);
+        this.followUpContainer.appendChild(taskPromptExplanation);
+        this.followUpContainer.appendChild(taskPromptArea);
+        this.followUpContainer.appendChild(taskPromptButton);
         this.followUpContainer.appendChild(questionHeader);
         this.followUpContainer.appendChild(questionPromptExplanation);
         this.followUpContainer.appendChild(questionArea);
