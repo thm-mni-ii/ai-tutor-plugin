@@ -304,7 +304,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
               const notebookData: any = notebookModel.toJSON();     
               const username_list = window.location.pathname.split("/");
               const username = username_list[2]
-              const baseUrl = AUTH_URL + '/checkSheet';
+              const baseUrl = AUTH_URL + '/completeRequest';
               const notebookContext = currentNotebook.context;
               const fileName = notebookContext.localPath; 
 
@@ -318,8 +318,11 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                   },
                   body: JSON.stringify({
                     noteBookText: notebookData.cells,
+                    cellId: "",
                     fileName: fileName,
                     userName: username,
+                    messages: [],
+                    state: 0
                   }),
                   signal: controller.signal
                 });
@@ -407,7 +410,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
               const id: string | null = this.currentCellId;
               const username_list = window.location.pathname.split("/");
               const username = username_list[2]
-              const baseUrl = AUTH_URL + '/checkTask';
+              const baseUrl = AUTH_URL + '/completeRequest';
               const notebookContext = currentNotebook.context;
               const fileName = notebookContext.localPath; 
 
@@ -424,6 +427,8 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                     cellId: id,
                     fileName: fileName,
                     userName: username,
+                    messages: [],
+                    state: 1
                   }),
                   signal: controller.signal
                 });
@@ -517,7 +522,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
           try {
             const notebookModel = currentNotebook.content.model;
             if (notebookModel) {
-              const baseUrl = AUTH_URL + '/nachfrage';
+              const baseUrl = AUTH_URL + '/completeRequest';
               const message = {
                 "role": "user",
                 "content": question
@@ -535,9 +540,12 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                   "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                  messages: messages,
-                  cellId: id,
                   noteBookText: notebookData.cells,
+                  cellId: id,
+                  fileName: "",
+                  userName: "",
+                  messages: messages,
+                  state: -1
                 }),
                 signal: controller.signal
               });
@@ -1197,19 +1205,18 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
         const currentNotebook = this.notebookTracker.currentWidget;
 
         if (currentNotebook && currentNotebook.content.activeCell) {
-        
+          let text = "";
           try {
             const notebookModel = currentNotebook.content.model;
             if (notebookModel) {
               const notebookData: any = notebookModel.toJSON();     
               const username_list = window.location.pathname.split("/");
               const username = username_list[2]
-              const baseUrl = AUTH_URL + '/generateAndSendPrompt';
+              const baseUrl = AUTH_URL + '/completeRequest';
               const notebookContext = currentNotebook.context;
               const fileName = notebookContext.localPath; 
               const id: string | null = this.currentCellId;
               console.log(id)
-              let text = "";
               const response: any = await fetch(baseUrl, {
                 method: "POST",
                 headers: {
@@ -1220,6 +1227,8 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                   cellId: id,
                   fileName: fileName,
                   userName: username,
+                  messages: [],
+                  state: 2
                 }),
                 signal: controller.signal
               });
@@ -1244,11 +1253,23 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
               });       
               textarea.value = '';
             }
-          } catch (error) {
+          } catch (networkError: any) {
+            if (networkError.name === 'AbortError') {
+              text = "Anfragezeit überschritten. Bitte versuchen Sie es erneut.";
+              resultContainer.style.display = 'block';
+              resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
+              this.buttons.forEach((button) => {
+                button.disabled = false;
+              });
+              throw new Error('Anfragezeit überschritten. Bitte versuchen Sie es erneut.');
+            }
+            text = "AI Tutor ist nicht erreichbar.";
+            resultContainer.style.display = 'block';
+            resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
             this.buttons.forEach((button) => {
               button.disabled = false;
-            });  
-            console.error('Fehler beim Zugriff auf Zelle:', error);
+            });       
+            throw new Error('Netzwerkfehler: ' + networkError.message);
           }
         }
       };
