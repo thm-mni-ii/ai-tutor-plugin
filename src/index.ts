@@ -16,7 +16,7 @@ import {
 
   import robotSvg from '../style/icons/robot.svg';
 
-  const AUTH_URL = 'https://feedback.mni.thm.de/gdds';
+  const AUTH_URL = 'https://feedback.mni.thm.de/gdds-test';
 
   let taskFiles: folder[] = [];
 
@@ -271,6 +271,21 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
         box-sizing: border-box;
       `;
 
+      const requestArea = document.createElement('textarea');
+      requestArea.style.cssText = `
+        width: 100%;
+        min-height: 240px;
+        padding: 8px;
+        border: 1px solid var(--jp-border-color2);
+        border-radius: 4px;
+        background: var(--jp-layout-color1);
+        color: var(--jp-ui-font-color1);
+        font-family: var(--jp-ui-font-family);
+        font-size: 13px;
+        resize: vertical;
+        box-sizing: border-box;
+      `;
+
       const sheetButton = document.createElement('button');
       sheetButton.textContent = 'Feedback zu allen Aufgaben';
       sheetButton.style.cssText = `
@@ -342,6 +357,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                 }
                 resultContainer.style.display = 'block';
                 resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
+                requestArea.value = JSON.stringify(res.messages, null, 2);
                 this.buttons.forEach((button) => {
                   button.disabled = false;
                 });
@@ -448,6 +464,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                 }
                 resultContainer.style.display = 'block';
                 resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
+                requestArea.value = JSON.stringify(res.messages, null, 2);
                 this.buttons.forEach((button) => {
                   button.disabled = false;
                 });
@@ -564,6 +581,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
               }
               resultContainer.style.display = 'block';
               resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
+              requestArea.value = JSON.stringify(res.messages, null, 2);
               this.buttons.forEach((button) => {
                 button.disabled = false;
               });
@@ -707,6 +725,10 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
           box-sizing: border-box;
         `;
 
+
+        const requestHeader: HTMLHeadingElement = document.createElement("h1");
+        requestHeader.textContent = "Rohausgabe LLM";
+
         const taskPromptHeader: HTMLHeadingElement = document.createElement("h1");
         taskPromptHeader.textContent = "Prompt für eine Aufgabe";
 
@@ -812,6 +834,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                   }
                   resultContainer.style.display = 'block';
                   resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
+                  requestArea.value = JSON.stringify(res.messages, null, 2);
                   this.buttons.forEach((button) => {
                     button.disabled = false;
                   });       
@@ -901,6 +924,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                   }
                   resultContainer.style.display = 'block';
                   resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
+                  requestArea.value = JSON.stringify(res.messages, null, 2);
                   this.buttons.forEach((button) => {
                     button.disabled = false;
                   });       
@@ -993,6 +1017,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                 }
                 resultContainer.style.display = 'block';
                 resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
+                requestArea.value = JSON.stringify(res.messages, null, 2);
                 this.buttons.forEach((button) => {
                   button.disabled = false;
                 });       
@@ -1081,6 +1106,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                   }
                   resultContainer.style.display = 'block';
                   resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
+                  requestArea.value = JSON.stringify(res.messages, null, 2);
                   this.buttons.forEach((button) => {
                     button.disabled = false;
                   });       
@@ -1189,6 +1215,8 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
         this.followUpContainer.appendChild(questionPromptExplanation);
         this.followUpContainer.appendChild(questionArea);
         this.followUpContainer.appendChild(sendQuestionPrompt);
+        this.followUpContainer.appendChild(requestHeader);
+        this.followUpContainer.appendChild(requestArea);
       }
 
       button.onclick = async () => {
@@ -1248,6 +1276,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
               }
               resultContainer.style.display = 'block';
               resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
+              requestArea.value = JSON.stringify(res.messages, null, 2);
               this.buttons.forEach((button) => {
                 button.disabled = false;
               });       
