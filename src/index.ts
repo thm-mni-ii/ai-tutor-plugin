@@ -319,7 +319,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
               const notebookData: any = notebookModel.toJSON();     
               const username_list = window.location.pathname.split("/");
               const username = username_list[2]
-              const baseUrl = AUTH_URL + '/completeRequest';
+              const baseUrl = AUTH_URL + '/prompt';
               const notebookContext = currentNotebook.context;
               const fileName = notebookContext.localPath; 
 
@@ -332,12 +332,12 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                     "Content-Type": "application/json",
                   },
                   body: JSON.stringify({
-                    noteBookText: notebookData.cells,
-                    cellId: "",
-                    fileName: fileName,
-                    userName: username,
+                    notebook_text: notebookData.cells,
+                    cell_id: "",
+                    file_name: fileName,
+                    user_name: username,
                     messages: [],
-                    state: 0
+                    state: "sheet"
                   }),
                   signal: controller.signal
                 });
@@ -426,7 +426,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
               const id: string | null = this.currentCellId;
               const username_list = window.location.pathname.split("/");
               const username = username_list[2]
-              const baseUrl = AUTH_URL + '/completeRequest';
+              const baseUrl = AUTH_URL + '/prompt';
               const notebookContext = currentNotebook.context;
               const fileName = notebookContext.localPath; 
 
@@ -439,12 +439,12 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                     "Content-Type": "application/json",
                   },
                   body: JSON.stringify({
-                    noteBookText: notebookData.cells,
-                    cellId: id,
-                    fileName: fileName,
-                    userName: username,
+                    notebook_text: notebookData.cells,
+                    cell_id: id,
+                    file_name: fileName,
+                    user_name: username,
                     messages: [],
-                    state: 1
+                    state: "task"
                   }),
                   signal: controller.signal
                 });
@@ -539,7 +539,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
           try {
             const notebookModel = currentNotebook.content.model;
             if (notebookModel) {
-              const baseUrl = AUTH_URL + '/completeRequest';
+              const baseUrl = AUTH_URL + '/prompt';
               const message = {
                 "role": "user",
                 "content": question
@@ -557,12 +557,12 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                   "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                  noteBookText: notebookData.cells,
-                  cellId: id,
-                  fileName: "",
-                  userName: "",
+                  notebook_text: notebookData.cells,
+                  cell_id: id,
+                  file_name: "",
+                  user_name: "",
                   messages: messages,
-                  state: -1
+                  state: null
                 }),
                 signal: controller.signal
               });
@@ -809,12 +809,12 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                       "Content-Type": "application/json",
                     },
                     body: JSON.stringify({
-                      noteBookText: notebookData.cells,
-                      cellId: id,
-                      fileName: fileName,
-                      userName: username,
-                      systemPrompt: systemPrompt,
-                      userPrompt: userPrompt
+                      notebook_text: notebookData.cells,
+                      cell_id: id,
+                      file_name: fileName,
+                      user_name: username,
+                      system_prompt: systemPrompt,
+                      user_prompt: userPrompt
                     }),
                     signal: controller.signal
                   });
@@ -899,11 +899,11 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                       "Content-Type": "application/json",
                     },
                     body: JSON.stringify({
-                      noteBookText: notebookData.cells,
-                      fileName: fileName,
-                      userName: username,
-                      systemPrompt: systemPrompt,
-                      userPrompt: userPrompt
+                      notebook_text: notebookData.cells,
+                      file_name: fileName,
+                      user_name: username,
+                      system_prompt: systemPrompt,
+                      user_prompt: userPrompt
                     }),
                     signal: controller.signal
                   });
@@ -992,11 +992,11 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                     "Content-Type": "application/json",
                   },
                   body: JSON.stringify({
-                    noteBookText: notebookData.cells,
-                    systemPrompt: systemPrompt,
-                    userName: username,
-                    userPrompt: userPrompt,
-                    cellId: id,
+                    notebook_text: notebookData.cells,
+                    system_prompt: systemPrompt,
+                    user_name: username,
+                    user_prompt: userPrompt,
+                    cell_id: id,
                   }),
                   signal: controller.signal
                 });
@@ -1084,9 +1084,9 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                     },
                     body: JSON.stringify({
                       messages: messages,
-                      cellId: id,
-                      noteBookText: notebookData.cells,
-                      userName: username,
+                      cell_id: id,
+                      notebook_text: notebookData.cells,
+                      user_name: username,
                       question: question
                     }),
                     signal: controller.signal
@@ -1240,7 +1240,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
               const notebookData: any = notebookModel.toJSON();     
               const username_list = window.location.pathname.split("/");
               const username = username_list[2]
-              const baseUrl = AUTH_URL + '/completeRequest';
+              const baseUrl = AUTH_URL + '/prompt';
               const notebookContext = currentNotebook.context;
               const fileName = notebookContext.localPath; 
               const id: string | null = this.currentCellId;
@@ -1251,12 +1251,12 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                   "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                  noteBookText: notebookData.cells,
-                  cellId: id,
-                  fileName: fileName,
-                  userName: username,
+                  notebook_text: notebookData.cells,
+                  cell_id: id,
+                  file_name: fileName,
+                  user_name: username,
                   messages: [],
-                  state: 2
+                  state: "cell"
                 }),
                 signal: controller.signal
               });
