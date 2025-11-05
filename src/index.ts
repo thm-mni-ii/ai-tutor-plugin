@@ -16,7 +16,7 @@ import {
 
   import robotSvg from '../style/icons/robot.svg';
 
-  const AUTH_URL = 'https://feedback.mni.thm.de/gdds';
+  const AUTH_URL = 'https://feedback.mni.thm.de/gdds-test';
 
   let taskFiles: folder[] = [];
 
@@ -271,6 +271,21 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
         box-sizing: border-box;
       `;
 
+      const requestArea = document.createElement('textarea');
+      requestArea.style.cssText = `
+        width: 100%;
+        min-height: 240px;
+        padding: 8px;
+        border: 1px solid var(--jp-border-color2);
+        border-radius: 4px;
+        background: var(--jp-layout-color1);
+        color: var(--jp-ui-font-color1);
+        font-family: var(--jp-ui-font-family);
+        font-size: 13px;
+        resize: vertical;
+        box-sizing: border-box;
+      `;
+
       const sheetButton = document.createElement('button');
       sheetButton.textContent = 'Feedback zu allen Aufgaben';
       sheetButton.style.cssText = `
@@ -304,7 +319,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
               const notebookData: any = notebookModel.toJSON();     
               const username_list = window.location.pathname.split("/");
               const username = username_list[2]
-              const baseUrl = AUTH_URL + '/checkSheet';
+              const baseUrl = AUTH_URL + '/prompt';
               const notebookContext = currentNotebook.context;
               const fileName = notebookContext.localPath; 
 
@@ -317,9 +332,12 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                     "Content-Type": "application/json",
                   },
                   body: JSON.stringify({
-                    noteBookText: notebookData.cells,
-                    fileName: fileName,
-                    userName: username,
+                    notebook_text: notebookData.cells,
+                    cell_id: "",
+                    file_name: fileName,
+                    user_name: username,
+                    messages: [],
+                    state: "sheet"
                   }),
                   signal: controller.signal
                 });
@@ -339,6 +357,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                 }
                 resultContainer.style.display = 'block';
                 resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
+                requestArea.value = JSON.stringify(res.messages, null, 2);
                 this.buttons.forEach((button) => {
                   button.disabled = false;
                 });
@@ -407,7 +426,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
               const id: string | null = this.currentCellId;
               const username_list = window.location.pathname.split("/");
               const username = username_list[2]
-              const baseUrl = AUTH_URL + '/checkTask';
+              const baseUrl = AUTH_URL + '/prompt';
               const notebookContext = currentNotebook.context;
               const fileName = notebookContext.localPath; 
 
@@ -420,10 +439,12 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                     "Content-Type": "application/json",
                   },
                   body: JSON.stringify({
-                    noteBookText: notebookData.cells,
-                    cellId: id,
-                    fileName: fileName,
-                    userName: username,
+                    notebook_text: notebookData.cells,
+                    cell_id: id,
+                    file_name: fileName,
+                    user_name: username,
+                    messages: [],
+                    state: "task"
                   }),
                   signal: controller.signal
                 });
@@ -443,6 +464,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                 }
                 resultContainer.style.display = 'block';
                 resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
+                requestArea.value = JSON.stringify(res.messages, null, 2);
                 this.buttons.forEach((button) => {
                   button.disabled = false;
                 });
@@ -517,7 +539,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
           try {
             const notebookModel = currentNotebook.content.model;
             if (notebookModel) {
-              const baseUrl = AUTH_URL + '/nachfrage';
+              const baseUrl = AUTH_URL + '/prompt';
               const message = {
                 "role": "user",
                 "content": question
@@ -535,9 +557,12 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                   "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
+                  notebook_text: notebookData.cells,
+                  cell_id: id,
+                  file_name: "",
+                  user_name: "",
                   messages: messages,
-                  cellId: id,
-                  noteBookText: notebookData.cells,
+                  state: "none"
                 }),
                 signal: controller.signal
               });
@@ -556,6 +581,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
               }
               resultContainer.style.display = 'block';
               resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
+              requestArea.value = JSON.stringify(res.messages, null, 2);
               this.buttons.forEach((button) => {
                 button.disabled = false;
               });
@@ -699,6 +725,10 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
           box-sizing: border-box;
         `;
 
+
+        const requestHeader: HTMLHeadingElement = document.createElement("h1");
+        requestHeader.textContent = "Rohausgabe LLM";
+
         const taskPromptHeader: HTMLHeadingElement = document.createElement("h1");
         taskPromptHeader.textContent = "Prompt für eine Aufgabe";
 
@@ -766,7 +796,9 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                 const username = username_list[2]
                 const userPrompt = taskPromptArea.value;
                 const systemPrompt = taskSystemPromptArea.value
-
+                this.buttons.forEach((button) => {
+                  button.disabled = true;
+                });
                 const baseUrl = AUTH_URL + '/taskAdmin';
                 const id: string | null = this.currentCellId;
                 const notebookData: any = notebookModel.toJSON();  
@@ -779,16 +811,18 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                       "Content-Type": "application/json",
                     },
                     body: JSON.stringify({
-                      noteBookText: notebookData.cells,
-                      cellId: id,
-                      fileName: fileName,
-                      userName: username,
-                      systemPrompt: systemPrompt,
-                      userPrompt: userPrompt
+                      notebook_text: notebookData.cells,
+                      cell_id: id,
+                      file_name: fileName,
+                      user_name: username,
+                      system_prompt: systemPrompt,
+                      user_prompt: userPrompt
                     }),
                     signal: controller.signal
                   });
-
+                this.buttons.forEach((button) => {
+                  button.disabled = false;
+                });
                   if (!response.ok) {
                     text = "AI Tutor ist nicht erreichbar."
                     throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
@@ -804,6 +838,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                   }
                   resultContainer.style.display = 'block';
                   resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
+                  requestArea.value = JSON.stringify(res.messages, null, 2);
                   this.buttons.forEach((button) => {
                     button.disabled = false;
                   });       
@@ -856,7 +891,9 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                 const username = username_list[2]
                 const userPrompt = taskPromptArea.value;
                 const systemPrompt = taskSystemPromptArea.value
-
+                this.buttons.forEach((button) => {
+                  button.disabled = true;
+                });
                 const baseUrl = AUTH_URL + '/sheetAdmin';
                 const notebookData: any = notebookModel.toJSON();  
                 const notebookContext = currentNotebook.context;
@@ -868,15 +905,17 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                       "Content-Type": "application/json",
                     },
                     body: JSON.stringify({
-                      noteBookText: notebookData.cells,
-                      fileName: fileName,
-                      userName: username,
-                      systemPrompt: systemPrompt,
-                      userPrompt: userPrompt
+                      notebook_text: notebookData.cells,
+                      file_name: fileName,
+                      user_name: username,
+                      system_prompt: systemPrompt,
+                      user_prompt: userPrompt
                     }),
                     signal: controller.signal
                   });
-
+                  this.buttons.forEach((button) => {
+                    button.disabled = false;
+                  });
                   if (!response.ok) {
                     text = "AI Tutor ist nicht erreichbar."
                     throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
@@ -893,6 +932,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                   }
                   resultContainer.style.display = 'block';
                   resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
+                  requestArea.value = JSON.stringify(res.messages, null, 2);
                   this.buttons.forEach((button) => {
                     button.disabled = false;
                   });       
@@ -960,11 +1000,11 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                     "Content-Type": "application/json",
                   },
                   body: JSON.stringify({
-                    noteBookText: notebookData.cells,
-                    systemPrompt: systemPrompt,
-                    userName: username,
-                    userPrompt: userPrompt,
-                    cellId: id,
+                    notebook_text: notebookData.cells,
+                    system_prompt: systemPrompt,
+                    user_name: username,
+                    user_prompt: userPrompt,
+                    cell_id: id,
                   }),
                   signal: controller.signal
                 });
@@ -985,6 +1025,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                 }
                 resultContainer.style.display = 'block';
                 resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
+                requestArea.value = JSON.stringify(res.messages, null, 2);
                 this.buttons.forEach((button) => {
                   button.disabled = false;
                 });       
@@ -1031,6 +1072,9 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
           if (currentNotebook && currentNotebook.content.activeCell) {
             try {
               const notebookModel = currentNotebook.content.model;
+              this.buttons.forEach((button) => {
+                button.disabled = true;
+              });              
               if (notebookModel) {
                 const baseUrl = AUTH_URL + '/nachfrageAdmin';
                 const message = {
@@ -1051,14 +1095,16 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                     },
                     body: JSON.stringify({
                       messages: messages,
-                      cellId: id,
-                      noteBookText: notebookData.cells,
-                      userName: username,
+                      cell_id: id,
+                      notebook_text: notebookData.cells,
+                      user_name: username,
                       question: question
                     }),
                     signal: controller.signal
                   });
-
+                  this.buttons.forEach((button) => {
+                    button.disabled = false;
+                  });
                   if (!response.ok) {
                     text = "AI Tutor ist nicht erreichbar."
                     throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
@@ -1073,6 +1119,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                   }
                   resultContainer.style.display = 'block';
                   resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
+                  requestArea.value = JSON.stringify(res.messages, null, 2);
                   this.buttons.forEach((button) => {
                     button.disabled = false;
                   });       
@@ -1181,6 +1228,8 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
         this.followUpContainer.appendChild(questionPromptExplanation);
         this.followUpContainer.appendChild(questionArea);
         this.followUpContainer.appendChild(sendQuestionPrompt);
+        this.followUpContainer.appendChild(requestHeader);
+        this.followUpContainer.appendChild(requestArea);
       }
 
       button.onclick = async () => {
@@ -1197,29 +1246,30 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
         const currentNotebook = this.notebookTracker.currentWidget;
 
         if (currentNotebook && currentNotebook.content.activeCell) {
-        
+          let text = "";
           try {
             const notebookModel = currentNotebook.content.model;
             if (notebookModel) {
               const notebookData: any = notebookModel.toJSON();     
               const username_list = window.location.pathname.split("/");
               const username = username_list[2]
-              const baseUrl = AUTH_URL + '/generateAndSendPrompt';
+              const baseUrl = AUTH_URL + '/prompt';
               const notebookContext = currentNotebook.context;
               const fileName = notebookContext.localPath; 
               const id: string | null = this.currentCellId;
               console.log(id)
-              let text = "";
               const response: any = await fetch(baseUrl, {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                  noteBookText: notebookData.cells,
-                  cellId: id,
-                  fileName: fileName,
-                  userName: username,
+                  notebook_text: notebookData.cells,
+                  cell_id: id,
+                  file_name: fileName,
+                  user_name: username,
+                  messages: [],
+                  state: "cell"
                 }),
                 signal: controller.signal
               });
@@ -1239,16 +1289,29 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
               }
               resultContainer.style.display = 'block';
               resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
+              requestArea.value = JSON.stringify(res.messages, null, 2);
               this.buttons.forEach((button) => {
                 button.disabled = false;
               });       
               textarea.value = '';
             }
-          } catch (error) {
+          } catch (networkError: any) {
+            if (networkError.name === 'AbortError') {
+              text = "Anfragezeit überschritten. Bitte versuchen Sie es erneut.";
+              resultContainer.style.display = 'block';
+              resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
+              this.buttons.forEach((button) => {
+                button.disabled = false;
+              });
+              throw new Error('Anfragezeit überschritten. Bitte versuchen Sie es erneut.');
+            }
+            text = "AI Tutor ist nicht erreichbar.";
+            resultContainer.style.display = 'block';
+            resultContainer.innerHTML = `<code style="color: var(--jp-ui-font-color1);">${this.escapeHtml(text)}</code>`.trim();
             this.buttons.forEach((button) => {
               button.disabled = false;
-            });  
-            console.error('Fehler beim Zugriff auf Zelle:', error);
+            });       
+            throw new Error('Netzwerkfehler: ' + networkError.message);
           }
         }
       };
