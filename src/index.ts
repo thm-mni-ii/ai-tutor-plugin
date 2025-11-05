@@ -562,7 +562,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                   file_name: "",
                   user_name: "",
                   messages: messages,
-                  state: null
+                  state: "none"
                 }),
                 signal: controller.signal
               });
