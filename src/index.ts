@@ -796,7 +796,9 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                 const username = username_list[2]
                 const userPrompt = taskPromptArea.value;
                 const systemPrompt = taskSystemPromptArea.value
-
+                this.buttons.forEach((button) => {
+                  button.disabled = true;
+                });
                 const baseUrl = AUTH_URL + '/taskAdmin';
                 const id: string | null = this.currentCellId;
                 const notebookData: any = notebookModel.toJSON();  
@@ -818,7 +820,9 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                     }),
                     signal: controller.signal
                   });
-
+                this.buttons.forEach((button) => {
+                  button.disabled = false;
+                });
                   if (!response.ok) {
                     text = "AI Tutor ist nicht erreichbar."
                     throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
@@ -887,7 +891,9 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                 const username = username_list[2]
                 const userPrompt = taskPromptArea.value;
                 const systemPrompt = taskSystemPromptArea.value
-
+                this.buttons.forEach((button) => {
+                  button.disabled = true;
+                });
                 const baseUrl = AUTH_URL + '/sheetAdmin';
                 const notebookData: any = notebookModel.toJSON();  
                 const notebookContext = currentNotebook.context;
@@ -907,7 +913,9 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                     }),
                     signal: controller.signal
                   });
-
+                  this.buttons.forEach((button) => {
+                    button.disabled = false;
+                  });
                   if (!response.ok) {
                     text = "AI Tutor ist nicht erreichbar."
                     throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
@@ -1064,6 +1072,9 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
           if (currentNotebook && currentNotebook.content.activeCell) {
             try {
               const notebookModel = currentNotebook.content.model;
+              this.buttons.forEach((button) => {
+                button.disabled = true;
+              });              
               if (notebookModel) {
                 const baseUrl = AUTH_URL + '/nachfrageAdmin';
                 const message = {
@@ -1091,7 +1102,9 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                     }),
                     signal: controller.signal
                   });
-
+                  this.buttons.forEach((button) => {
+                    button.disabled = false;
+                  });
                   if (!response.ok) {
                     text = "AI Tutor ist nicht erreichbar."
                     throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
