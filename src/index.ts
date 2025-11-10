@@ -1379,62 +1379,19 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
       // Authentifikation prüfen
       const isAuthenticatedObject: any = await authenticateUser();
       console.log(isAuthenticatedObject)
+      console.log(1)
       const isAuthenticated = isAuthenticatedObject.user_found;
+      console.log(2)
       const isAdmin = isAuthenticatedObject.is_admin;
+      console.log(3)
       if (!isAuthenticated) {
         console.error('Authentifikation fehlgeschlagen - Plugin wird nicht geladen');
         return;
       }
+      console.log(4)
 
 
-      // Tasks-Dateien laden
-      const helpWidget = new HelpWidget(app, notebookTracker, isAdmin);
-      restorer.add(helpWidget, helpWidget.id);
-
-      app.commands.addCommand('gdds:open-help', {
-        label: 'Toggle AI Tutor',
-        caption: 'Öffnet oder schließt den AI Tutor',
-        execute: () => {
-          // Prüfen ob das Widget bereits angehängt ist
-          if (!helpWidget.isAttached) {
-            // Widget hinzufügen, wenn es nicht angehängt ist
-            app.shell.add(helpWidget, 'right');
-            app.shell.activateById(helpWidget.id);
-          } else {
-            helpWidget.close();
-
-          }
-        }
-      });
-
-      function createHelpButton(app: JupyterFrontEnd): ToolbarButton {
-        return new ToolbarButton({
-          className: 'gdds-help-button',
-          label: 'AI Tutor',
-          tooltip: 'AI Tutor Hilfe öffnen (Strg+Shift+H)',
-          icon: robotIcon,
-          onClick: () => {
-            app.commands.execute('gdds:open-help');
-          }
-        });
-      }
-
-      app.docRegistry.addWidgetExtension('Notebook', {
-        createNew: (panel: NotebookPanel, context: DocumentRegistry.IContext<any>): IDisposable => {
-          const helpButton = createHelpButton(app);
-          panel.toolbar.addItem('gdds-help', helpButton);
-          return helpButton;
-        }
-      });
-
-      app.commands.addKeyBinding({
-        command: 'gdds:open-help',
-        args: {},
-        keys: ['Ctrl Shift H'],
-        selector: '.jp-Notebook'
-      });
-      taskFiles = await loadTaskFiles();
-
+      // Tasks-Dateien lade
       const baseUrl = AUTH_URL + '/get_missing_files';
       try {
         const response = await fetch(`${baseUrl}`, {
@@ -1444,6 +1401,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
             },
             body: JSON.stringify(taskFiles)
         });
+        console.log(5)
         if (response.ok) {
           try {
             const missingFiles: MissingFilesResponse = await response.json();
@@ -1463,6 +1421,59 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
       } finally {
           clearTimeout(timeoutId);
       }
+      console.log(6)
+      const helpWidget = new HelpWidget(app, notebookTracker, isAdmin);
+      restorer.add(helpWidget, helpWidget.id);
+      console.log(7)
+
+      app.commands.addCommand('gdds:open-help', {
+        label: 'Toggle AI Tutor',
+        caption: 'Öffnet oder schließt den AI Tutor',
+        execute: () => {
+          // Prüfen ob das Widget bereits angehängt ist
+          if (!helpWidget.isAttached) {
+            // Widget hinzufügen, wenn es nicht angehängt ist
+            app.shell.add(helpWidget, 'right');
+            app.shell.activateById(helpWidget.id);
+          } else {
+            helpWidget.close();
+
+          }
+        }
+      });
+
+      console.log(8)
+      function createHelpButton(app: JupyterFrontEnd): ToolbarButton {
+        return new ToolbarButton({
+          className: 'gdds-help-button',
+          label: 'AI Tutor',
+          tooltip: 'AI Tutor Hilfe öffnen (Strg+Shift+H)',
+          icon: robotIcon,
+          onClick: () => {
+            app.commands.execute('gdds:open-help');
+          }
+        });
+      }
+
+      console.log(9)
+      app.docRegistry.addWidgetExtension('Notebook', {
+        createNew: (panel: NotebookPanel, context: DocumentRegistry.IContext<any>): IDisposable => {
+          const helpButton = createHelpButton(app);
+          panel.toolbar.addItem('gdds-help', helpButton);
+          return helpButton;
+        }
+      });
+
+      console.log(10)
+      app.commands.addKeyBinding({
+        command: 'gdds:open-help',
+        args: {},
+        keys: ['Ctrl Shift H'],
+        selector: '.jp-Notebook'
+      });
+      taskFiles = await loadTaskFiles();
+
+
     }
     
   };
