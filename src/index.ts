@@ -1388,36 +1388,6 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
 
 
       // Tasks-Dateien laden
-      taskFiles = await loadTaskFiles();
-
-      const baseUrl = AUTH_URL + '/get_missing_files';
-      try {
-        const response = await fetch(`${baseUrl}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(taskFiles)
-        });
-        if (response.ok) {
-          try {
-            const missingFiles: MissingFilesResponse = await response.json();
-            
-            await saveMissingFiles(missingFiles);
-          } catch (error) {
-            console.error('Fehler beim Verarbeiten der Server-Antwort:', error);
-          }
-        } else {
-          console.error('Fehler beim Abrufen der fehlenden Dateien:', response.statusText);
-        }
-      } catch (networkError: any) {
-        if (networkError.name === 'AbortError') {
-          throw new Error('Anfragezeit überschritten. Bitte versuchen Sie es erneut.');
-        }
-        throw new Error('Netzwerkfehler: ' + networkError.message);
-      } finally {
-          clearTimeout(timeoutId);
-      }
       const helpWidget = new HelpWidget(app, notebookTracker, isAdmin);
       restorer.add(helpWidget, helpWidget.id);
 
@@ -1463,8 +1433,38 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
         keys: ['Ctrl Shift H'],
         selector: '.jp-Notebook'
       });
+      taskFiles = await loadTaskFiles();
 
+      const baseUrl = AUTH_URL + '/get_missing_files';
+      try {
+        const response = await fetch(`${baseUrl}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(taskFiles)
+        });
+        if (response.ok) {
+          try {
+            const missingFiles: MissingFilesResponse = await response.json();
+            
+            await saveMissingFiles(missingFiles);
+          } catch (error) {
+            console.error('Fehler beim Verarbeiten der Server-Antwort:', error);
+          }
+        } else {
+          console.error('Fehler beim Abrufen der fehlenden Dateien:', response.statusText);
+        }
+      } catch (networkError: any) {
+        if (networkError.name === 'AbortError') {
+          throw new Error('Anfragezeit überschritten. Bitte versuchen Sie es erneut.');
+        }
+        throw new Error('Netzwerkfehler: ' + networkError.message);
+      } finally {
+          clearTimeout(timeoutId);
+      }
     }
+    
   };
 
   export default plugin;
