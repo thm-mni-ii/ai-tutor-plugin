@@ -1372,52 +1372,49 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
       // Authentifikation prüfen
       const isAuthenticatedObject: any = await authenticateUser();
       console.log(isAuthenticatedObject)
-      console.log(1)
       const isAuthenticated = isAuthenticatedObject.user_found;
-      console.log(2)
       const isAdmin = isAuthenticatedObject.is_admin;
-      console.log(3)
       if (!isAuthenticated) {
         console.error('Authentifikation fehlgeschlagen - Plugin wird nicht geladen');
         return;
       }
-      console.log(4)
 
-
-      // Tasks-Dateien lade
-      const baseUrl = AUTH_URL + '/get_missing_files';
-      try {
-        const response = await fetch(`${baseUrl}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(taskFiles)
-        });
-        console.log(5)
-        if (response.ok) {
-          try {
-            const missingFiles: MissingFilesResponse = await response.json();
-            
-            await saveMissingFiles(missingFiles);
-          } catch (error) {
-            console.error('Fehler beim Verarbeiten der Server-Antwort:', error);
+      (async () => {
+        taskFiles = await loadTaskFiles();
+        const baseUrl = AUTH_URL + '/get_missing_files';
+        try {
+          const response = await fetch(`${baseUrl}`, {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(taskFiles)
+          });
+          if (response.ok) {
+            try {
+              const missingFiles: MissingFilesResponse = await response.json();
+              
+              await saveMissingFiles(missingFiles);
+              console.log('Fehlende Dateien wurden erfolgreich heruntergeladen');
+            } catch (error) {
+              console.error('Fehler beim Verarbeiten der Server-Antwort:', error);
+            }
+          } else {
+            console.error('Fehler beim Abrufen der fehlenden Dateien:', response.statusText);
           }
-        } else {
-          console.error('Fehler beim Abrufen der fehlenden Dateien:', response.statusText);
+        } catch (networkError: any) {
+          if (networkError.name === 'AbortError') {
+            console.error('Anfragezeit überschritten beim Laden der Dateien');
+          } else {
+            console.error('Netzwerkfehler beim Laden der Dateien:', networkError.message);
+          }
+        } finally {
+            clearTimeout(timeoutId);
         }
-      } catch (networkError: any) {
-        if (networkError.name === 'AbortError') {
-          throw new Error('Anfragezeit überschritten. Bitte versuchen Sie es erneut.');
-        }
-        throw new Error('Netzwerkfehler: ' + networkError.message);
-      } finally {
-          clearTimeout(timeoutId);
-      }
-      console.log(6)
+      })(); 
       const helpWidget = new HelpWidget(app, notebookTracker, isAdmin);
       restorer.add(helpWidget, helpWidget.id);
-      console.log(7)
+
 
       app.commands.addCommand('gdds:open-help', {
         label: 'Toggle AI Tutor',
@@ -1430,12 +1427,10 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
             app.shell.activateById(helpWidget.id);
           } else {
             helpWidget.close();
-
           }
         }
       });
 
-      console.log(8)
       function createHelpButton(app: JupyterFrontEnd): ToolbarButton {
         return new ToolbarButton({
           className: 'gdds-help-button',
@@ -1448,7 +1443,6 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
         });
       }
 
-      console.log(9)
       app.docRegistry.addWidgetExtension('Notebook', {
         createNew: (panel: NotebookPanel, context: DocumentRegistry.IContext<any>): IDisposable => {
           const helpButton = createHelpButton(app);
@@ -1457,18 +1451,13 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
         }
       });
 
-      console.log(10)
       app.commands.addKeyBinding({
         command: 'gdds:open-help',
         args: {},
         keys: ['Ctrl Shift H'],
         selector: '.jp-Notebook'
       });
-      taskFiles = await loadTaskFiles();
-
-
     }
     
   };
-
   export default plugin;
