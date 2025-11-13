@@ -333,10 +333,8 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                   },
                   body: JSON.stringify({
                     notebook_text: notebookData.cells,
-                    cell_id: "",
                     file_name: fileName,
                     user_name: username,
-                    messages: [],
                     state: "sheet"
                   }),
                   signal: controller.signal
@@ -443,7 +441,6 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                     cell_id: id,
                     file_name: fileName,
                     user_name: username,
-                    messages: [],
                     state: "task"
                   }),
                   signal: controller.signal
@@ -559,10 +556,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                 body: JSON.stringify({
                   notebook_text: notebookData.cells,
                   cell_id: id,
-                  file_name: "",
-                  user_name: "",
                   messages: messages,
-                  state: "none"
                 }),
                 signal: controller.signal
               });
@@ -1268,7 +1262,6 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                   cell_id: id,
                   file_name: fileName,
                   user_name: username,
-                  messages: [],
                   state: "cell"
                 }),
                 signal: controller.signal
