@@ -103,50 +103,47 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
     for (const folder of missingFiles.folders) {
       const folderPath = `${tasksDir}/${folder.name}`;
 
-      // ggf. verschachtelte Ordner erstellen
       await ensureDirectory(folderPath);
 
       for (const file of folder.files) {
         const filePath = `${folderPath}/${file.name}`;
 
-        // Datei überspringen, wenn sie schon existiert
         try {
+          // Check if file exists
           await contentsManager.get(filePath);
-          continue;
+          continue; // File exists → skip
         } catch {
-          // Datei existiert nicht → speichern
-        }
+          // File does NOT exist → save it
 
-        try {
-          console.log(4)
+          try {
+            let fileContent: string | undefined;
 
-          let fileContent: string | undefined;
+            console.log(4);
 
-          if (file.content_base64) {
-            // Base64 → Uint8Array → UTF-8 String
-            const binary = Uint8Array.from(atob(file.content_base64), c => c.charCodeAt(0));
-            fileContent = new TextDecoder("utf-8").decode(binary);
-          } else if (file.content) {
-            fileContent = file.content;
-          } else {
-            console.warn(`Kein Inhalt für Datei ${file.name} gefunden`);
-            continue;
+            if (file.content_base64) {
+              const binary = Uint8Array.from(atob(file.content_base64), c => c.charCodeAt(0));
+              fileContent = new TextDecoder("utf-8").decode(binary);
+            } else if (file.content) {
+              fileContent = file.content;
+            } else {
+              console.warn(`Kein Inhalt für Datei ${file.name} gefunden`);
+              continue;
+            }
+            console.log(5);
+            await contentsManager.save(filePath, {
+              type: "file",
+              format: "text",
+              content: fileContent,
+            });
+
+            console.log(6);
+
+          } catch (error) {
+            console.error(`Fehler beim Speichern der Datei ${file.name}:`, error);
           }
-          console.log(5)
 
-          // Datei speichern
-          await contentsManager.save(filePath, {
-            type: "file",
-            format: "text",
-            content: fileContent,
-          });
-          console.log(6)
-
-        } catch (error) {
-          console.error(`Fehler beim Speichern der Datei ${file.name}:`, error);
+          console.log(7);
         }
-        console.log(7)
-
       }
     }
   } catch (error) {
