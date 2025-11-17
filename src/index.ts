@@ -17,6 +17,7 @@ import {
   import robotSvg from '../style/icons/robot.svg';
 
   const AUTH_URL = 'https://feedback.mni.thm.de/gdds-test';
+
   let taskFiles: folder[] = [];
 
   const controller = new AbortController();
@@ -96,12 +97,10 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
       }
     }
   }
-  console.log(2)
 
   try {
     // Root-Ordner sicherstellen
     await ensureDirectory(tasksDir);
-    console.log(3)
 
     for (const folder of missingFiles.folders) {
       const folderPath = `${tasksDir}/${folder.name}`;
@@ -112,20 +111,16 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
         const filePath = `${folderPath}/${file.name}`;
 
         try {
-          console.log(3.1)
           await contentsManager.get(filePath);
-          console.log(3.2)
 
           continue; // File exists → skip
         } catch {
-          console.log(3.3)
 
           // File does NOT exist → save it
 
           try {
             let fileContent: string | undefined;
 
-            console.log(4);
 
             if (file.content_base64) {
               const binary = Uint8Array.from(atob(file.content_base64), c => c.charCodeAt(0));
@@ -136,20 +131,17 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
               console.warn(`Kein Inhalt für Datei ${file.name} gefunden`);
               continue;
             }
-            console.log(5);
             await contentsManager.save(filePath, {
               type: "file",
               format: "text",
               content: fileContent,
             });
 
-            console.log(6);
 
           } catch (error) {
             console.error(`Fehler beim Speichern der Datei ${file.name}:`, error);
           }
 
-          console.log(7);
         }
       }
     }
@@ -1408,6 +1400,35 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
               const missingFiles: MissingFilesResponse = await response.json();
               
               await saveMissingFiles(missingFiles);
+
+              const popup = document.createElement('div');
+              popup.innerText = 'Alle Dateien wurden erfolgreich geladen!';
+              popup.style.position = 'fixed';
+              popup.style.bottom = '20px';
+              popup.style.right = '20px';
+              popup.style.background = '#4caf50';
+              popup.style.color = 'white';
+              popup.style.padding = '12px 18px';
+              popup.style.borderRadius = '8px';
+              popup.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.2)';
+              popup.style.fontSize = '14px';
+              popup.style.zIndex = '9999';
+              popup.style.opacity = '0';
+              popup.style.transition = 'opacity 0.3s ease';
+
+              document.body.appendChild(popup);
+
+              // fade in
+              requestAnimationFrame(() => {
+                popup.style.opacity = '1';
+              });
+
+              // remove after 3 seconds
+              setTimeout(() => {
+                popup.style.opacity = '0';
+                setTimeout(() => popup.remove(), 300);
+              }, 3000);
+
               console.log('Fehlende Dateien wurden erfolgreich heruntergeladen');
             } catch (error) {
               console.error('Fehler beim Verarbeiten der Server-Antwort:', error);
