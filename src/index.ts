@@ -79,6 +79,10 @@ import {
 async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<void> {
   const contentsManager = new ContentsManager();
   const tasksDir = "Übungsaufgaben";
+  for (const folder of missingFiles.folders) {
+    console.log(folder.name)
+  } 
+  console.log(missingFiles.folders)
   console.log(1)
   // Hilfsfunktion: rekursiv sicherstellen, dass ein Ordner existiert
   async function ensureDirectory(path: string): Promise<void> {
