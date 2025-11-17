@@ -79,7 +79,7 @@ import {
 async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<void> {
   const contentsManager = new ContentsManager();
   const tasksDir = "Übungsaufgaben";
-
+  console.log(1)
   // Hilfsfunktion: rekursiv sicherstellen, dass ein Ordner existiert
   async function ensureDirectory(path: string): Promise<void> {
     const parts = path.split("/");
@@ -93,10 +93,12 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
       }
     }
   }
+  console.log(2)
 
   try {
     // Root-Ordner sicherstellen
     await ensureDirectory(tasksDir);
+    console.log(3)
 
     for (const folder of missingFiles.folders) {
       const folderPath = `${tasksDir}/${folder.name}`;
@@ -116,6 +118,8 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
         }
 
         try {
+          console.log(4)
+
           let fileContent: string | undefined;
 
           if (file.content_base64) {
@@ -128,6 +132,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
             console.warn(`Kein Inhalt für Datei ${file.name} gefunden`);
             continue;
           }
+          console.log(5)
 
           // Datei speichern
           await contentsManager.save(filePath, {
@@ -135,9 +140,13 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
             format: "text",
             content: fileContent,
           });
+          console.log(6)
+
         } catch (error) {
           console.error(`Fehler beim Speichern der Datei ${file.name}:`, error);
         }
+        console.log(7)
+
       }
     }
   } catch (error) {
