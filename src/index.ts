@@ -17,7 +17,6 @@ import {
   import robotSvg from '../style/icons/robot.svg';
 
   const AUTH_URL = 'https://feedback.mni.thm.de/gdds-test';
-
   let taskFiles: folder[] = [];
 
   const controller = new AbortController();
@@ -45,7 +44,7 @@ import {
   async function loadTaskFiles(): Promise<folder[]> {
     try {
       const contentsManager = new ContentsManager();
-      const tasksDir = 'Übungsaufgaben';
+      const tasksDir = 'Übungsaufgaben/Grundlagen der Data Science';
       
       let folders: folder[] = []
       try {
