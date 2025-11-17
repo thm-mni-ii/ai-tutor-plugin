@@ -109,10 +109,14 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
         const filePath = `${folderPath}/${file.name}`;
 
         try {
-          // Check if file exists
+          console.log(3.1)
           await contentsManager.get(filePath);
+          console.log(3.2)
+
           continue; // File exists → skip
         } catch {
+          console.log(3.3)
+
           // File does NOT exist → save it
 
           try {
