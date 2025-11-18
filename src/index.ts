@@ -1385,13 +1385,13 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
       }
 
       (async () => {
-          function createPopup(message: string, allowClose = true) {
+          function createPopup(message: string, allowClose = true, color = "white") {
             const popup = document.createElement('div');
             popup.style.position = 'fixed';
             popup.style.bottom = '20px';
             popup.style.right = '20px';
             popup.style.background = '#333';
-            popup.style.color = 'white';
+            popup.style.color = color;
             popup.style.padding = '12px 18px';
             popup.style.borderRadius = '8px';
             popup.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
@@ -1428,7 +1428,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
             return popup;
           }
 
-          const downloadingPopup = createPopup("Lade fehlende Dateien herunter...", true);
+          const downloadingPopup = createPopup("Lade fehlende Dateien herunter...", true, "white");
 
           taskFiles = await loadTaskFiles();
           const baseUrl = AUTH_URL + '/get_missing_files';
@@ -1449,7 +1449,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
 
                 downloadingPopup.remove();
 
-                const finishedPopup = createPopup("Alle Dateien wurden erfolgreich geladen!", false);
+                const finishedPopup = createPopup("Alle Dateien wurden erfolgreich geladen!", false, "green");
 
                 setTimeout(() => {
                   finishedPopup.style.opacity = '0';
