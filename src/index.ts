@@ -1385,67 +1385,95 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
       }
 
       (async () => {
-        taskFiles = await loadTaskFiles();
-        const baseUrl = AUTH_URL + '/get_missing_files';
-        try {
-          const response = await fetch(`${baseUrl}`, {
+          function createPopup(message: string, allowClose = true) {
+            const popup = document.createElement('div');
+            popup.style.position = 'fixed';
+            popup.style.bottom = '20px';
+            popup.style.right = '20px';
+            popup.style.background = '#333';
+            popup.style.color = 'white';
+            popup.style.padding = '12px 18px';
+            popup.style.borderRadius = '8px';
+            popup.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
+            popup.style.fontSize = '14px';
+            popup.style.zIndex = '9999';
+            popup.style.opacity = '0';
+            popup.style.transition = 'opacity 0.3s ease';
+            popup.style.display = 'flex';
+            popup.style.alignItems = 'center';
+            popup.style.gap = '10px';
+
+            const text = document.createElement('span');
+            text.innerText = message;
+            popup.appendChild(text);
+
+            if (allowClose) {
+              const btn = document.createElement('button');
+              btn.innerText = '×';
+              btn.style.border = 'none';
+              btn.style.background = 'transparent';
+              btn.style.color = 'white';
+              btn.style.fontSize = '18px';
+              btn.style.cursor = 'pointer';
+              btn.onclick = () => popup.remove();
+              popup.appendChild(btn);
+            }
+
+            document.body.appendChild(popup);
+
+            requestAnimationFrame(() => {
+              popup.style.opacity = '1';
+            });
+
+            return popup;
+          }
+
+          const downloadingPopup = createPopup("Lade fehlende Dateien herunter...", true);
+
+          taskFiles = await loadTaskFiles();
+          const baseUrl = AUTH_URL + '/get_missing_files';
+
+          try {
+            const response = await fetch(`${baseUrl}`, {
               method: 'POST',
               headers: {
-                  'Content-Type': 'application/json',
+                'Content-Type': 'application/json',
               },
               body: JSON.stringify(taskFiles)
-          });
-          if (response.ok) {
-            try {
-              const missingFiles: MissingFilesResponse = await response.json();
-              
-              await saveMissingFiles(missingFiles);
+            });
 
-              const popup = document.createElement('div');
-              popup.innerText = 'Alle Dateien wurden erfolgreich geladen!';
-              popup.style.position = 'fixed';
-              popup.style.bottom = '20px';
-              popup.style.right = '20px';
-              popup.style.background = '#4caf50';
-              popup.style.color = 'white';
-              popup.style.padding = '12px 18px';
-              popup.style.borderRadius = '8px';
-              popup.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.2)';
-              popup.style.fontSize = '14px';
-              popup.style.zIndex = '9999';
-              popup.style.opacity = '0';
-              popup.style.transition = 'opacity 0.3s ease';
+            if (response.ok) {
+              try {
+                const missingFiles: MissingFilesResponse = await response.json();
+                await saveMissingFiles(missingFiles);
 
-              document.body.appendChild(popup);
+                downloadingPopup.remove();
 
-              // fade in
-              requestAnimationFrame(() => {
-                popup.style.opacity = '1';
-              });
+                const finishedPopup = createPopup("Alle Dateien wurden erfolgreich geladen!", false);
 
-              // remove after 3 seconds
-              setTimeout(() => {
-                popup.style.opacity = '0';
-                setTimeout(() => popup.remove(), 300);
-              }, 3000);
+                setTimeout(() => {
+                  finishedPopup.style.opacity = '0';
+                  setTimeout(() => finishedPopup.remove(), 300);
+                }, 3000);
 
-              console.log('Fehlende Dateien wurden erfolgreich heruntergeladen');
-            } catch (error) {
-              console.error('Fehler beim Verarbeiten der Server-Antwort:', error);
+                console.log('Fehlende Dateien wurden erfolgreich heruntergeladen');
+              } catch (error) {
+                console.error('Fehler beim Verarbeiten der Server-Antwort:', error);
+              }
+            } else {
+              console.error('Fehler beim Abrufen der fehlenden Dateien:', response.statusText);
             }
-          } else {
-            console.error('Fehler beim Abrufen der fehlenden Dateien:', response.statusText);
-          }
-        } catch (networkError: any) {
-          if (networkError.name === 'AbortError') {
-            console.error('Anfragezeit überschritten beim Laden der Dateien');
-          } else {
-            console.error('Netzwerkfehler beim Laden der Dateien:', networkError.message);
-          }
-        } finally {
+          } catch (networkError: any) {
+            if (networkError.name === 'AbortError') {
+              console.error('Anfragezeit überschritten beim Laden der Dateien');
+            } else {
+              console.error('Netzwerkfehler beim Laden der Dateien:', networkError.message);
+            }
+          } finally {
             clearTimeout(timeoutId);
-        }
-      })(); 
+          }
+        })();
+
       const helpWidget = new HelpWidget(app, notebookTracker, isAdmin);
       restorer.add(helpWidget, helpWidget.id);
 
