@@ -16,7 +16,7 @@ import {
 
   import robotSvg from '../style/icons/robot.svg';
 
-  const AUTH_URL = 'https://feedback.mni.thm.de/gdds-test';
+  const AUTH_URL = 'https://feedback.mni.thm.de/gdds';
 
   let taskFiles: folder[] = [];
 
