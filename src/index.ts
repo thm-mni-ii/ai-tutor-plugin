@@ -45,7 +45,7 @@ import {
   async function loadTaskFiles(): Promise<folder[]> {
     try {
       const contentsManager = new ContentsManager();
-      const tasksDir = 'Übungsaufgaben';
+      const tasksDir = 'Übungsaufgaben/Grundlagen der Data Science';
       
       let folders: folder[] = []
       try {
@@ -79,7 +79,11 @@ import {
 async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<void> {
   const contentsManager = new ContentsManager();
   const tasksDir = "Übungsaufgaben";
-
+  for (const folder of missingFiles.folders) {
+    console.log(folder.name)
+  } 
+  console.log(missingFiles.folders)
+  console.log(1)
   // Hilfsfunktion: rekursiv sicherstellen, dass ein Ordner existiert
   async function ensureDirectory(path: string): Promise<void> {
     const parts = path.split("/");
@@ -101,42 +105,43 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
     for (const folder of missingFiles.folders) {
       const folderPath = `${tasksDir}/${folder.name}`;
 
-      // ggf. verschachtelte Ordner erstellen
       await ensureDirectory(folderPath);
 
       for (const file of folder.files) {
         const filePath = `${folderPath}/${file.name}`;
 
-        // Datei überspringen, wenn sie schon existiert
         try {
           await contentsManager.get(filePath);
-          continue;
+
+          continue; // File exists → skip
         } catch {
-          // Datei existiert nicht → speichern
-        }
 
-        try {
-          let fileContent: string | undefined;
+          // File does NOT exist → save it
 
-          if (file.content_base64) {
-            // Base64 → Uint8Array → UTF-8 String
-            const binary = Uint8Array.from(atob(file.content_base64), c => c.charCodeAt(0));
-            fileContent = new TextDecoder("utf-8").decode(binary);
-          } else if (file.content) {
-            fileContent = file.content;
-          } else {
-            console.warn(`Kein Inhalt für Datei ${file.name} gefunden`);
-            continue;
+          try {
+            let fileContent: string | undefined;
+
+
+            if (file.content_base64) {
+              const binary = Uint8Array.from(atob(file.content_base64), c => c.charCodeAt(0));
+              fileContent = new TextDecoder("utf-8").decode(binary);
+            } else if (file.content) {
+              fileContent = file.content;
+            } else {
+              console.warn(`Kein Inhalt für Datei ${file.name} gefunden`);
+              continue;
+            }
+            await contentsManager.save(filePath, {
+              type: "file",
+              format: "text",
+              content: fileContent,
+            });
+
+
+          } catch (error) {
+            console.error(`Fehler beim Speichern der Datei ${file.name}:`, error);
           }
 
-          // Datei speichern
-          await contentsManager.save(filePath, {
-            type: "file",
-            format: "text",
-            content: fileContent,
-          });
-        } catch (error) {
-          console.error(`Fehler beim Speichern der Datei ${file.name}:`, error);
         }
       }
     }
@@ -333,10 +338,8 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                   },
                   body: JSON.stringify({
                     notebook_text: notebookData.cells,
-                    cell_id: "",
                     file_name: fileName,
                     user_name: username,
-                    messages: [],
                     state: "sheet"
                   }),
                   signal: controller.signal
@@ -443,7 +446,6 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                     cell_id: id,
                     file_name: fileName,
                     user_name: username,
-                    messages: [],
                     state: "task"
                   }),
                   signal: controller.signal
@@ -559,10 +561,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                 body: JSON.stringify({
                   notebook_text: notebookData.cells,
                   cell_id: id,
-                  file_name: "",
-                  user_name: "",
                   messages: messages,
-                  state: "none"
                 }),
                 signal: controller.signal
               });
@@ -1268,7 +1267,6 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                   cell_id: id,
                   file_name: fileName,
                   user_name: username,
-                  messages: [],
                   state: "cell"
                 }),
                 signal: controller.signal
@@ -1386,40 +1384,99 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
         return;
       }
 
+      (async () => {
+          function createPopup(message: string, allowClose = true, color = "white") {
+            const popup = document.createElement('div');
+            popup.style.position = 'fixed';
+            popup.style.bottom = '20px';
+            popup.style.right = '20px';
+            popup.style.background = color;
+            popup.style.color = "white";
+            popup.style.padding = '12px 18px';
+            popup.style.borderRadius = '8px';
+            popup.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
+            popup.style.fontSize = '14px';
+            popup.style.zIndex = '9999';
+            popup.style.opacity = '0';
+            popup.style.transition = 'opacity 0.3s ease';
+            popup.style.display = 'flex';
+            popup.style.alignItems = 'center';
+            popup.style.gap = '10px';
 
-      // Tasks-Dateien laden
-      taskFiles = await loadTaskFiles();
+            const text = document.createElement('span');
+            text.innerText = message;
+            popup.appendChild(text);
 
-      const baseUrl = AUTH_URL + '/get_missing_files';
-      try {
-        const response = await fetch(`${baseUrl}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(taskFiles)
-        });
-        if (response.ok) {
-          try {
-            const missingFiles: MissingFilesResponse = await response.json();
-            
-            await saveMissingFiles(missingFiles);
-          } catch (error) {
-            console.error('Fehler beim Verarbeiten der Server-Antwort:', error);
+            if (allowClose) {
+              const btn = document.createElement('button');
+              btn.innerText = '×';
+              btn.style.border = 'none';
+              btn.style.background = 'transparent';
+              btn.style.color = 'white';
+              btn.style.fontSize = '18px';
+              btn.style.cursor = 'pointer';
+              btn.onclick = () => popup.remove();
+              popup.appendChild(btn);
+            }
+
+            document.body.appendChild(popup);
+
+            requestAnimationFrame(() => {
+              popup.style.opacity = '1';
+            });
+
+            return popup;
           }
-        } else {
-          console.error('Fehler beim Abrufen der fehlenden Dateien:', response.statusText);
-        }
-      } catch (networkError: any) {
-        if (networkError.name === 'AbortError') {
-          throw new Error('Anfragezeit überschritten. Bitte versuchen Sie es erneut.');
-        }
-        throw new Error('Netzwerkfehler: ' + networkError.message);
-      } finally {
-          clearTimeout(timeoutId);
-      }
+
+          const downloadingPopup = createPopup("Lade fehlende Dateien herunter...", true, "#333");
+
+          taskFiles = await loadTaskFiles();
+          const baseUrl = AUTH_URL + '/get_missing_files';
+
+          try {
+            const response = await fetch(`${baseUrl}`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(taskFiles)
+            });
+
+            if (response.ok) {
+              try {
+                const missingFiles: MissingFilesResponse = await response.json();
+                await saveMissingFiles(missingFiles);
+
+                downloadingPopup.remove();
+
+                const finishedPopup = createPopup("Alle Dateien wurden erfolgreich geladen!", false, "#7fdd53ff");
+
+                setTimeout(() => {
+                  finishedPopup.style.opacity = '0';
+                  setTimeout(() => finishedPopup.remove(), 300);
+                }, 3000);
+
+                console.log('Fehlende Dateien wurden erfolgreich heruntergeladen');
+              } catch (error) {
+                console.error('Fehler beim Verarbeiten der Server-Antwort:', error);
+              }
+            } else {
+              console.error('Fehler beim Abrufen der fehlenden Dateien:', response.statusText);
+            }
+          } catch (networkError: any) {
+            if (networkError.name === 'AbortError') {
+              console.error('Anfragezeit überschritten beim Laden der Dateien');
+            } else {
+              console.error('Netzwerkfehler beim Laden der Dateien:', networkError.message);
+            }
+          } finally {
+            clearTimeout(timeoutId);
+          }
+        })();
+
       const helpWidget = new HelpWidget(app, notebookTracker, isAdmin);
       restorer.add(helpWidget, helpWidget.id);
+
 
       app.commands.addCommand('gdds:open-help', {
         label: 'Toggle AI Tutor',
@@ -1432,7 +1489,6 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
             app.shell.activateById(helpWidget.id);
           } else {
             helpWidget.close();
-
           }
         }
       });
@@ -1463,8 +1519,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
         keys: ['Ctrl Shift H'],
         selector: '.jp-Notebook'
       });
-
     }
+    
   };
-
   export default plugin;
