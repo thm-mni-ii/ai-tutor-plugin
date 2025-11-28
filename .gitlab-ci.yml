@@ -6,6 +6,8 @@ build_gdds:
   tags:
     - alpine
   image: alpine:latest
+  only:
+    - master
   cache:
     key: alpine-packages
     paths:
