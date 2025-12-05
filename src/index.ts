@@ -79,11 +79,6 @@ import {
 async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<void> {
   const contentsManager = new ContentsManager();
   const tasksDir = "Übungsaufgaben";
-  for (const folder of missingFiles.folders) {
-    console.log(folder.name)
-  } 
-  console.log(missingFiles.folders)
-  console.log(1)
   // Hilfsfunktion: rekursiv sicherstellen, dass ein Ordner existiert
   async function ensureDirectory(path: string): Promise<void> {
     const parts = path.split("/");
@@ -920,7 +915,6 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                     throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
                   }
                   const res = await response.json();
-                  console.log(res);
                   if (!res || !Array.isArray(res.messages) || res.messages.length === 0) {
                       text = "Ungültige Antwort vom AI Tutor erhalten";
                       messages = [];
@@ -1013,7 +1007,6 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                   throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
                 }
                 const res = await response.json();
-                console.log(res);
                 if (!res || !Array.isArray(res.messages) || res.messages.length === 0) {
                     text = "Ungültige Antwort vom AI Tutor erhalten";
                     messages = [];
@@ -1172,7 +1165,6 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
               throw new Error(`HTTP error! status: ${adminResponse.status} - ${adminResponse.statusText}`);
             }
             const data = await adminResponse.json();
-            console.log(data)
             if (!data || data.length === 0) {
               systemPromptArea.value = "Fehler beim Laden der Prompts";
               userPromptArea.value = "Fehler beim Laden der Prompts";
@@ -1256,7 +1248,6 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
               const notebookContext = currentNotebook.context;
               const fileName = notebookContext.localPath; 
               const id: string | null = this.currentCellId;
-              console.log(id)
               const response: any = await fetch(baseUrl, {
                 method: "POST",
                 headers: {
@@ -1276,7 +1267,6 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                 throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
               }
               const res = await response.json();
-              console.log(res);
               if (!res || !Array.isArray(res.messages) || res.messages.length === 0) {
                   text = "Ungültige Antwort vom AI Tutor erhalten";
                   messages = [];
@@ -1346,7 +1336,6 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
           const index = currentNotebook.widgets.indexOf(newCell);
           const previousCell = currentNotebook.widgets[index - 1];
           this.currentCellId = previousCell.model.id
-          console.log('📌 Tracking previous cell after run-select-next:', this.currentCellId);
         } 
       });
 
@@ -1359,9 +1348,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
           return;
         }
         this.currentCellId = newCell.model.id;
-        console.log('📌 Current selected cell:', this.currentCellId);
       });
-      console.log('✅ Cell tracking initialized.');
 
     }
 
@@ -1376,7 +1363,6 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
 
       // Authentifikation prüfen
       const isAuthenticatedObject: any = await authenticateUser();
-      console.log(isAuthenticatedObject)
       const isAuthenticated = isAuthenticatedObject.user_found;
       const isAdmin = isAuthenticatedObject.is_admin;
       if (!isAuthenticated) {
@@ -1456,7 +1442,6 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
                   setTimeout(() => finishedPopup.remove(), 300);
                 }, 3000);
 
-                console.log('Fehlende Dateien wurden erfolgreich heruntergeladen');
               } catch (error) {
                 console.error('Fehler beim Verarbeiten der Server-Antwort:', error);
               }
