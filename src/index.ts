@@ -75,7 +75,6 @@ import {
     }
   }
 
-  // Funktion zum Speichern der fehlenden Dateien
 async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<void> {
   const contentsManager = new ContentsManager();
   const tasksDir = "Übungsaufgaben";
