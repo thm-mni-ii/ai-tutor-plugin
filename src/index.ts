@@ -28,7 +28,6 @@ import {
     files: String[]
   }
 
-  // Interface für die Server-Antwort mit fehlenden Dateien
   interface MissingFilesResponse {
     folders: Array<{
       name: string;
