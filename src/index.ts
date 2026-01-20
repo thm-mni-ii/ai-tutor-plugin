@@ -40,7 +40,6 @@ import {
     }>;
   }
 
-  // Funktion zum Laden der Tasks-Dateien
   async function loadTaskFiles(): Promise<folder[]> {
     try {
       const contentsManager = new ContentsManager();
