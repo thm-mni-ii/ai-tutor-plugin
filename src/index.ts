@@ -108,8 +108,6 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
           continue; // File exists → skip
         } catch {
 
-          // File does NOT exist → save it
-
           try {
             let fileContent: string | undefined;
 
