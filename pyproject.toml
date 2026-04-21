@@ -23,7 +23,9 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
 ]
 dependencies = [
-    "jupyter_server>=2.4.0,<3"
+    "copier~=9.2",
+    "jinja2-time>=0.2.0",
+    "jupyter_server>=2.4.0,<3",
 ]
 dynamic = ["version", "description", "authors", "urls", "keywords"]
 
