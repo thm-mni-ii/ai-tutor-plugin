@@ -1,0 +1,8 @@
+{
+  "jupyter.lab.shortcuts": [],
+  "title": "GdDS",
+  "description": "GdDS settings.",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}

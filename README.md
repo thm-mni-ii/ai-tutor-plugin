@@ -2,7 +2,7 @@
 
 [![Github Actions Status](/workflows/Build/badge.svg)](/actions/workflows/build.yml)
 
-A JupyterLab extension.
+AI Tutor for supporting in JupyterLab.
 
 This extension is composed of a Python package named `GdDS`
 for the server extension and a NPM package named `GdDS`
@@ -57,13 +57,20 @@ The `jlpm` command is JupyterLab's pinned version of
 ```bash
 # Clone the repo to your local environment
 # Change directory to the GdDS directory
-# Install package in development mode
-pip install -e ".[test]"
+
+# Set up a virtual environment and install package in development mode
+python -m venv .venv
+source .venv/bin/activate
+pip install --editable ".[dev,test]"
+
 # Link your development version of the extension with JupyterLab
 jupyter labextension develop . --overwrite
 # Server extension must be manually installed in develop mode
 jupyter server extension enable GdDS
+
 # Rebuild extension Typescript source after making changes
+# IMPORTANT: Unlike the steps above which are performed only once, do this step
+# every time you make a change.
 jlpm build
 ```
 
@@ -133,6 +140,44 @@ This extension uses [Playwright](https://playwright.dev/docs/intro) for the inte
 More precisely, the JupyterLab helper [Galata](https://github.com/jupyterlab/jupyterlab/tree/master/galata) is used to handle testing the extension in JupyterLab.
 
 More information are provided within the [ui-tests](./ui-tests/README.md) README.
+
+## AI Coding Assistant Support
+
+This project includes an `AGENTS.md` file with coding standards and best practices for JupyterLab extension development. The file follows the [AGENTS.md standard](https://agents.md) for cross-tool compatibility.
+
+### Compatible AI Tools
+
+`AGENTS.md` works with AI coding assistants that support the standard, including Cursor, GitHub Copilot, Windsurf, Aider, and others. For a current list of compatible tools, see [the AGENTS.md standard](https://agents.md).
+This project also includes symlinks for tool-specific compatibility:
+
+- `CLAUDE.md` → `AGENTS.md` (for Claude Code)
+
+- `GEMINI.md` → `AGENTS.md` (for Gemini Code Assist)
+
+Other conventions you might encounter:
+
+- `.cursorrules` - Cursor's YAML/JSON format (Cursor also supports AGENTS.md natively)
+- `CONVENTIONS.md` / `CONTRIBUTING.md` - For CodeConventions.ai and GitHub bots
+- Project-specific rules in JetBrains AI Assistant settings
+
+All tool-specific files should be symlinks to `AGENTS.md` as the single source of truth.
+
+### What's Included
+
+The `AGENTS.md` file provides guidance on:
+
+- Code quality rules and file-scoped validation commands
+- Naming conventions for packages, plugins, and files
+- Coding standards (TypeScript, Python)
+- Development workflow and debugging
+- Backend-frontend integration patterns (`APIHandler`, `requestAPI()`, routing)
+- Common pitfalls and how to avoid them
+
+### Customization
+
+You can edit `AGENTS.md` to add project-specific conventions or adjust guidelines to match your team's practices. The file uses plain Markdown with Do/Don't patterns and references to actual project files.
+
+**Note**: `AGENTS.md` is living documentation. Update it when you change conventions, add dependencies, or discover new patterns. Include `AGENTS.md` updates in commits that modify workflows or coding standards.
 
 ### Packaging the extension
 
