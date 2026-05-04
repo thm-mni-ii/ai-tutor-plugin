@@ -11,6 +11,8 @@ import {
   import { IDisposable } from '@lumino/disposable';
   import { ToolbarButton } from '@jupyterlab/apputils';
   import { ContentsManager } from '@jupyterlab/services';
+  import { mountVueWidget } from '@ai4ai/vue-ui';
+  import '@ai4ai/vue-ui/index.css';
 
   import '../style/index.css';
 
@@ -144,6 +146,10 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
 
   // Authentifikationsfunktion
   async function authenticateUser(): Promise<boolean> {
+    /*return {
+      user_found: true,
+      is_admin: true
+    } as unknown as boolean;*/
     try {
       const url = new URL(AUTH_URL + "/authenticate");
       const username_list = window.location.pathname.split("/");
@@ -200,6 +206,9 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
       this.isAdmin = isAdmin;
       this.buttons = []
       this.currentCellId = null;
+      const div = document.createElement('div');
+      mountVueWidget(div, { title: "Test" });
+      this.node.appendChild(div);
       this.setupCellTracking(app);
       this.createContent();
     }

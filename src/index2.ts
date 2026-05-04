@@ -2,6 +2,7 @@ import {
   JupyterFrontEnd,
   JupyterFrontEndPlugin
 } from '@jupyterlab/application';
+import { Token } from '@lumino/coreutils';
 
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
 
@@ -14,7 +15,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
   id: 'GdDS:plugin',
   description: 'AI Tutor for supporting in JupyterLab.',
   autoStart: true,
-  optional: [ISettingRegistry],
+  optional: [ISettingRegistry as unknown as Token<any>],
   activate: (
     app: JupyterFrontEnd,
     settingRegistry: ISettingRegistry | null
