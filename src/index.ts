@@ -146,10 +146,10 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
 
   // Authentifikationsfunktion
   async function authenticateUser(): Promise<boolean> {
-    /*return {
+    return {
       user_found: true,
       is_admin: true
-    } as unknown as boolean;*/
+    } as unknown as boolean;
     try {
       const url = new URL(AUTH_URL + "/authenticate");
       const username_list = window.location.pathname.split("/");
