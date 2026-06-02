@@ -19,5 +19,5 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             echo "Starting"
-            echo "$DOCKER_HOST"
+            echo "Docker Host: $DOCKER_HOST"
             docker compose up -d --build
