@@ -14,7 +14,8 @@ export type FeedbackScope = 'cell' | 'task' | 'sheet'
 const messages = ref<ChatMessage[]>([])
 const isLoading = ref(false)
 const activeScope = ref<FeedbackScope | null>(null)
+const currentCellId = ref<string | null>(null)
 
 export function useAiTutorStore() {
-  return { messages, isLoading, activeScope }
+  return { messages, isLoading, activeScope, currentCellId }
 }

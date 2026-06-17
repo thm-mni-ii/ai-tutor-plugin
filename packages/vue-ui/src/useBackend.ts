@@ -10,11 +10,10 @@ function getUsername(): string {
 export interface NotebookData {
   cells: unknown[]
   fileName: string
-  currentCellId: string | null
 }
 
 export function useBackend() {
-  const { messages, isLoading } = useAiTutorStore()
+  const { messages, isLoading, currentCellId } = useAiTutorStore()
 
   // Sends the three scope-based feedback requests (cell / task / sheet).
   // Body shape: { notebook_text, file_name, user_name, state }
@@ -72,7 +71,7 @@ export function useBackend() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           notebook_text: notebook.cells,
-          cell_id: notebook.currentCellId,
+          cell_id: currentCellId.value,
           messages: history,
         }),
         signal: controller.signal,
