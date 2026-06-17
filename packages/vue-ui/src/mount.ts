@@ -1,6 +1,6 @@
 import { createApp, type App as VueApp } from 'vue'
 import { i18n } from './i18n'
-import App from './App.vue'
+import AiTutorPanel from './AiTutorPanel.vue'
 // styles are provided from JupyterLab
 
 export type VueWidgetHandle = {
@@ -12,7 +12,7 @@ export function mountVueWidget(
   el: HTMLElement,
   props?: Record<string, unknown>
 ): VueWidgetHandle {
-  const app = createApp(App, props)
+  const app = createApp(AiTutorPanel, props)
 
   app.use(i18n)
   app.mount(el)

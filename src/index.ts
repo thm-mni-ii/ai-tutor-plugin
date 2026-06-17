@@ -207,7 +207,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
       this.buttons = []
       this.currentCellId = null;
       const div = document.createElement('div');
-      mountVueWidget(div, { title: "Test" });
+      mountVueWidget(div, { app, notebookTracker, isAdmin });
       this.node.appendChild(div);
       this.setupCellTracking(app);
       this.createContent();
