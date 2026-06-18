@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { useAiTutorStore } from './useAiTutorStore'
+import { useI18n } from 'vue-i18n'
+import ChatWindow from './components/chat/ChatWindow.vue'
+import ModelSelector from './components/chat/ModelSelector.vue'
 
 defineProps<{
   app: unknown
@@ -7,38 +9,61 @@ defineProps<{
   isAdmin: boolean
 }>()
 
-const { messages, isLoading } = useAiTutorStore()
+const { t } = useI18n()
 </script>
 
 <template>
   <div class="ai-tutor-panel">
-    <p class="placeholder-text">AI Tutor Panel</p>
-    <p v-if="isAdmin" class="admin-badge">Admin mode</p>
-    <p class="debug-state">messages: {{ messages.length }} | loading: {{ isLoading }}</p>
+    <header class="ai-tutor-panel__header">
+      <div class="ai-tutor-panel__heading">
+        <span class="ai-tutor-panel__title">{{ t('chat.title') }}</span>
+        <span v-if="isAdmin" class="ai-tutor-panel__admin-badge">{{ t('chat.adminMode') }}</span>
+      </div>
+      <ModelSelector />
+    </header>
+
+    <ChatWindow class="ai-tutor-panel__chat" />
   </div>
 </template>
 
 <style scoped>
 .ai-tutor-panel {
-  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   font-family: var(--jp-ui-font-family);
   color: var(--jp-ui-font-color1);
 }
 
-.placeholder-text {
-  font-size: 14px;
-  margin: 0;
+.ai-tutor-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--jp-border-color2);
 }
 
-.admin-badge {
-  margin-top: 6px;
+.ai-tutor-panel__heading {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ai-tutor-panel__title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.ai-tutor-panel__admin-badge {
   font-size: 11px;
   color: var(--jp-warn-color1);
 }
 
-.debug-state {
-  margin-top: 6px;
-  font-size: 11px;
-  color: var(--jp-ui-font-color2);
+.ai-tutor-panel__chat {
+  flex: 1;
+  min-height: 0;
 }
 </style>

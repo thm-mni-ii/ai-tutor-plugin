@@ -6,10 +6,36 @@ export const i18n = createI18n({
   fallbackLocale: 'en',
   messages: {
     de: {
-      hello: 'Hallo aus Vue'
+      hello: 'Hallo aus Vue',
+      chat: {
+        title: 'AI Tutor',
+        adminMode: 'Admin-Modus',
+        you: 'Du',
+        tutor: 'Tutor',
+        thinking: 'Tutor denkt nach …',
+        empty: 'Noch keine Nachrichten. Führe eine Zelle aus, um Feedback zu erhalten.',
+        scrollToBottom: 'Zum Ende scrollen',
+        inputPlaceholder: 'Frage an den Tutor stellen …',
+        send: 'Senden',
+        attachFile: 'Datei anhängen',
+        removeAttachment: 'Anhang entfernen'
+      }
     },
     en: {
-      hello: 'Hello from Vue'
+      hello: 'Hello from Vue',
+      chat: {
+        title: 'AI Tutor',
+        adminMode: 'Admin mode',
+        you: 'You',
+        tutor: 'Tutor',
+        thinking: 'Tutor is thinking …',
+        empty: 'No messages yet. Run a cell to get feedback.',
+        scrollToBottom: 'Scroll to bottom',
+        inputPlaceholder: 'Ask the tutor a question …',
+        send: 'Send',
+        attachFile: 'Attach file',
+        removeAttachment: 'Remove attachment'
+      }
     }
   }
 })

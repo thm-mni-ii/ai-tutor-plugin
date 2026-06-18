@@ -35,15 +35,20 @@
         font-family: var(--jp-ui-font-family);
       }
 
-      /* Simulate the JupyterLab right sidebar panel */
+      /*
+       * Simulate the JupyterLab right sidebar panel. A fixed height (rather
+       * than min-height + overflow here) matches how Lumino sizes the real
+       * panel, so the chat window's own internal scroll/scroll-button can
+       * be exercised in this preview.
+       */
       #app {
         width: 320px;
-        min-height: 600px;
+        height: 600px;
         background: var(--jp-layout-color1);
         border: 1px solid var(--jp-border-color2);
         border-radius: 2px;
         box-shadow: 0 1px 4px rgba(0,0,0,0.12);
-        overflow-y: auto;
+        overflow: hidden;
       }
     </style>
   </head>

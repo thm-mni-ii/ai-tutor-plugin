@@ -348,11 +348,11 @@ body[data-jp-theme-light="false"] .jp-HelpDialog-faq summary:hover {
 }
 /* GDDS Plugin Styles */
 .gdds-help-widget {
-  padding: 16px;
   background: var(--jp-layout-color1);
   color: var(--jp-ui-font-color1);
   font-family: var(--jp-ui-font-family);
-  overflow-y: auto;
+  /* The chat UI mounted inside manages its own header/scroll/composer regions. */
+  overflow: hidden;
   height: 100%;
 }
 

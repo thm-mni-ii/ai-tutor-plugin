@@ -199,6 +199,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
       this.title.icon = robotIcon;
       this.title.caption = 'AI Tutor Hilfe und Dokumentation';
       const div = document.createElement('div');
+      div.style.height = '100%';
       mountVueWidget(div, { app, notebookTracker, isAdmin });
       this.node.appendChild(div);
       this.setupCellTracking(app);

@@ -22,7 +22,22 @@ store.messages.value = [
     content:
       'Gerne! Füge am Anfang deiner Funktion eine einfache Prüfung hinzu:\n\nif not my_list:\n    return []\n\nDamit gibst du eine leere Liste zurück, bevor du versuchst, auf Elemente zuzugreifen.',
   },
+  {
+    role: 'user',
+    content: 'Danke, das hat funktioniert! Wie sieht es mit Performance aus?',
+  },
+  {
+    role: 'assistant',
+    content:
+      'Die Prüfung selbst ist O(1), also kein Problem. Wenn die Liste sehr groß wird, lohnt sich eher ein Blick auf die Schleife darunter.',
+  },
+  {
+    role: 'user',
+    content: 'Verstanden, ich schaue mir das nochmal an.',
+  },
 ]
+// More messages than fit in the 600px dev-preview panel, so the
+// scroll-to-bottom button has something to demonstrate.
 store.isLoading.value = false
 
 // app and notebookTracker are typed as `unknown` in AiTutorPanel,
