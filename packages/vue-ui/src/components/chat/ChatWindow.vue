@@ -10,14 +10,17 @@ import LoadingIndicator from './LoadingIndicator.vue'
 import ScrollToBottomButton from './ScrollToBottomButton.vue'
 import ChatInput from './ChatInput.vue'
 
-const { messages, isLoading } = useAiTutorStore()
-const { sendFollowUp } = useBackend()
+const { messages, isLoading, streamingContent } = useAiTutorStore()
+const { sendFollowUpStream } = useBackend()
 const { t } = useI18n()
 
 const scrollContainer = ref<HTMLElement | null>(null)
+
+// Watch messages length, loading state, AND streaming length so the view
+// auto-scrolls on every incoming token (not just on full messages).
 const { showScrollButton, scrollToBottom, handleScroll } = useAutoScroll(
   scrollContainer,
-  () => `${messages.value.length}:${isLoading.value}`
+  () => `${messages.value.length}:${isLoading.value}:${streamingContent.value.length}`
 )
 
 // Placeholder until the real notebook (cells, file name) is wired through
@@ -27,7 +30,7 @@ function currentNotebookPlaceholder(): NotebookData {
 }
 
 function handleSubmit(question: string): void {
-  void sendFollowUp(question, currentNotebookPlaceholder())
+  void sendFollowUpStream(question, currentNotebookPlaceholder())
 }
 </script>
 
@@ -35,13 +38,23 @@ function handleSubmit(question: string): void {
   <div class="chat-window">
     <div class="chat-window__viewport">
       <div ref="scrollContainer" class="chat-window__messages" @scroll="handleScroll">
-        <p v-if="messages.length === 0 && !isLoading" class="chat-window__empty">
+        <p v-if="messages.length === 0 && !isLoading && !streamingContent" class="chat-window__empty">
           {{ t('chat.empty') }}
         </p>
 
+        <!-- Committed messages (user + fully received assistant) -->
         <ChatMessage v-for="(message, index) in messages" :key="index" :message="message" />
 
-        <LoadingIndicator v-if="isLoading" />
+        <!-- Live streaming bubble: appears token-by-token while LLM is generating -->
+        <ChatMessage
+          v-if="streamingContent"
+          :message="{ role: 'assistant', content: streamingContent }"
+          :streaming="true"
+        />
+
+        <!-- Waiting indicator: shown while loading but no tokens have arrived yet
+             (e.g. queuing, network latency before first token) -->
+        <LoadingIndicator v-else-if="isLoading" />
       </div>
 
       <ScrollToBottomButton :visible="showScrollButton" @click="scrollToBottom()" />

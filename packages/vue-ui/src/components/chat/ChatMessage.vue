@@ -4,6 +4,8 @@ import type { ChatMessage } from '../../useAiTutorStore'
 
 const props = defineProps<{
   message: ChatMessage
+  // When true, a blinking cursor is appended — used while the LLM is streaming.
+  streaming?: boolean
 }>()
 
 const { t } = useI18n()
@@ -15,7 +17,7 @@ const { t } = useI18n()
       {{ props.message.role === 'user' ? t('chat.you') : 'AI' }}
     </div>
     <div class="chat-message__bubble">
-      <p class="chat-message__content">{{ props.message.content }}</p>
+      <p class="chat-message__content" :class="{ 'chat-message__content--streaming': props.streaming }">{{ props.message.content }}</p>
     </div>
   </div>
 </template>
@@ -82,5 +84,18 @@ const { t } = useI18n()
   background: var(--jp-layout-color2);
   color: var(--jp-ui-font-color1);
   border-bottom-left-radius: 4px;
+}
+
+/* Blinking cursor shown while the LLM is still generating tokens. */
+.chat-message__content--streaming::after {
+  content: '▋';
+  display: inline-block;
+  margin-left: 1px;
+  animation: cursor-blink 0.8s infinite;
+}
+
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
 }
 </style>

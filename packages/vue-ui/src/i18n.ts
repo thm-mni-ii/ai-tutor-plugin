@@ -18,7 +18,8 @@ export const i18n = createI18n({
         inputPlaceholder: 'Frage an den Tutor stellen …',
         send: 'Senden',
         attachFile: 'Datei anhängen',
-        removeAttachment: 'Anhang entfernen'
+        removeAttachment: 'Anhang entfernen',
+        queuePosition: 'Warteschlange: {position}'
       }
     },
     en: {
@@ -34,7 +35,8 @@ export const i18n = createI18n({
         inputPlaceholder: 'Ask the tutor a question …',
         send: 'Send',
         attachFile: 'Attach file',
-        removeAttachment: 'Remove attachment'
+        removeAttachment: 'Remove attachment',
+        queuePosition: 'Queue position: {position}'
       }
     }
   }

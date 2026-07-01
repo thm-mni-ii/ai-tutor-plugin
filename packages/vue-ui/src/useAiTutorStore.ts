@@ -16,6 +16,14 @@ const isLoading = ref(false)
 const activeScope = ref<FeedbackScope | null>(null)
 const currentCellId = ref<string | null>(null)
 
+// M4: accumulates LLM tokens as they stream in; cleared when the full
+// message is committed to `messages`.
+const streamingContent = ref<string>('')
+
+// M4: position in the backend request queue (0 = no wait).
+// Updated by polling /GdDS/queue while a request is in-flight.
+const queuePosition = ref<number>(0)
+
 export function useAiTutorStore() {
-  return { messages, isLoading, activeScope, currentCellId }
+  return { messages, isLoading, activeScope, currentCellId, streamingContent, queuePosition }
 }
