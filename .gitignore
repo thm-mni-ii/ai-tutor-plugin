@@ -23,6 +23,12 @@ ui-tests/playwright-report/
 # Virtual environments
 .venv
 
+# Environment variables
+.env
+
+# Ubungsaufgaben
+Ãœbungsaufgaben/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

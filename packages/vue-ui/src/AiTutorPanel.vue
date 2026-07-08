@@ -24,7 +24,7 @@ const { t } = useI18n()
       <ModelSelector />
     </header>
 
-    <ChatWindow class="ai-tutor-panel__chat" />
+    <ChatWindow class="ai-tutor-panel__chat" :notebook-tracker="notebookTracker" />
   </div>
 </template>
 

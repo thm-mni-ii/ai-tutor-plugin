@@ -2,40 +2,46 @@
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAiTutorStore } from '../../useAiTutorStore'
+import type { FeedbackScope } from '../../useAiTutorStore'
 import { useBackend } from '../../useBackend'
-import type { NotebookData } from '../../useBackend'
+
+import { useNotebook } from '../../composables/useNotebook'
 import { useAutoScroll } from '../../composables/useAutoScroll'
 import ChatMessage from './ChatMessage.vue'
 import LoadingIndicator from './LoadingIndicator.vue'
 import ScrollToBottomButton from './ScrollToBottomButton.vue'
 import ChatInput from './ChatInput.vue'
+import ScopeSelector from './ScopeSelector.vue'
+
+const props = defineProps<{
+  notebookTracker: unknown
+}>()
 
 const { messages, isLoading, streamingContent } = useAiTutorStore()
-const { sendFollowUpStream } = useBackend()
+const { sendScopedFeedback, sendFollowUpStream } = useBackend()
+const { getNotebookData } = useNotebook(props.notebookTracker)
 const { t } = useI18n()
 
 const scrollContainer = ref<HTMLElement | null>(null)
 
-// Watch messages length, loading state, AND streaming length so the view
-// auto-scrolls on every incoming token (not just on full messages).
 const { showScrollButton, scrollToBottom, handleScroll } = useAutoScroll(
   scrollContainer,
   () => `${messages.value.length}:${isLoading.value}:${streamingContent.value.length}`
 )
 
-// Placeholder until the real notebook (cells, file name) is wired through
-// from the JupyterLab notebookTracker — out of scope for the chat UI itself.
-function currentNotebookPlaceholder(): NotebookData {
-  return { cells: [], fileName: 'untitled.ipynb' }
+function handleScope(scope: FeedbackScope): void {
+  void sendScopedFeedback(scope, getNotebookData())
 }
 
 function handleSubmit(question: string): void {
-  void sendFollowUpStream(question, currentNotebookPlaceholder())
+  void sendFollowUpStream(question)
 }
 </script>
 
 <template>
   <div class="chat-window">
+    <ScopeSelector @select="handleScope" />
+
     <div class="chat-window__viewport">
       <div ref="scrollContainer" class="chat-window__messages" @scroll="handleScroll">
         <p v-if="messages.length === 0 && !isLoading && !streamingContent" class="chat-window__empty">

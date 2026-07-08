@@ -13,13 +13,19 @@ export const i18n = createI18n({
         you: 'Du',
         tutor: 'Tutor',
         thinking: 'Tutor denkt nach …',
-        empty: 'Noch keine Nachrichten. Führe eine Zelle aus, um Feedback zu erhalten.',
+        empty: 'Noch keine Nachrichten. Wähle einen Bereich, um Feedback zu erhalten.',
         scrollToBottom: 'Zum Ende scrollen',
         inputPlaceholder: 'Frage an den Tutor stellen …',
         send: 'Senden',
         attachFile: 'Datei anhängen',
         removeAttachment: 'Anhang entfernen',
         queuePosition: 'Warteschlange: {position}'
+      },
+      scope: {
+        label: 'Feedback-Bereich wählen',
+        cell: 'Aktuelle Zelle',
+        task: 'Aktuelle Aufgabe',
+        sheet: 'Alle Aufgaben'
       }
     },
     en: {
@@ -30,13 +36,19 @@ export const i18n = createI18n({
         you: 'You',
         tutor: 'Tutor',
         thinking: 'Tutor is thinking …',
-        empty: 'No messages yet. Run a cell to get feedback.',
+        empty: 'No messages yet. Choose a scope to get feedback.',
         scrollToBottom: 'Scroll to bottom',
         inputPlaceholder: 'Ask the tutor a question …',
         send: 'Send',
         attachFile: 'Attach file',
         removeAttachment: 'Remove attachment',
         queuePosition: 'Queue position: {position}'
+      },
+      scope: {
+        label: 'Choose feedback scope',
+        cell: 'Current cell',
+        task: 'Current exercise',
+        sheet: 'All exercises'
       }
     }
   }
