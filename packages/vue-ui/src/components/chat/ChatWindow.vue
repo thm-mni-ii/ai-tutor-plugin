@@ -72,20 +72,16 @@ function handleSubmit(question: string): void {
 
         <!-- Waiting indicator: shown while loading but no tokens have arrived yet
              (e.g. queuing, network latency before first token) -->
-        <LoadingIndicator v-else-if="isLoading">
-          <template #action>
-            <button
-              type="button"
-              class="chat-window__cancel-btn"
-              @click="cancelRequest()"
-            >
-              {{ t('chat.cancelRequest') }}
-            </button>
-          </template>
-        </LoadingIndicator>
+        <LoadingIndicator v-else-if="isLoading" />
       </div>
 
       <ScrollToBottomButton :visible="showScrollButton" @click="scrollToBottom()" />
+    </div>
+
+    <div v-if="isLoading" class="chat-window__cancel-bar">
+      <button type="button" class="chat-window__cancel-btn" @click="cancelRequest()">
+        {{ t('chat.cancelRequest') }}
+      </button>
     </div>
 
     <ChatInput :disabled="isLoading" @submit="handleSubmit" />
@@ -145,8 +141,14 @@ function handleSubmit(question: string): void {
   color: var(--jp-warn-color1);
 }
 
+.chat-window__cancel-bar {
+  display: flex;
+  justify-content: center;
+  padding: 4px 12px;
+  flex-shrink: 0;
+}
+
 .chat-window__cancel-btn {
-  align-self: flex-start;
   padding: 3px 10px;
   font-size: var(--jp-ui-font-size0, 11px);
   border: 1px solid var(--jp-error-color1);

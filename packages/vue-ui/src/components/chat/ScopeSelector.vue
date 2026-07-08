@@ -25,7 +25,7 @@ const scopes: FeedbackScope[] = ['cell', 'task', 'sheet']
     >
       {{ t(`scope.${scope}`) }}
     </button>
-    <span class="scope-selector__end"><slot /></span>
+    <span class="scope-selector__end"><slot name="controls" /></span>
   </div>
 </template>
 

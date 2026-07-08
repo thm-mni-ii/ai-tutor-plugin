@@ -7,13 +7,10 @@ const { t } = useI18n()
 <template>
   <div class="loading-row" role="status" :aria-label="t('chat.thinking')">
     <div class="loading-row__avatar">AI</div>
-    <div class="loading-row__body">
-      <div class="loading-row__bubble">
-        <span class="loading-row__dot" />
-        <span class="loading-row__dot" />
-        <span class="loading-row__dot" />
-      </div>
-      <slot name="action" />
+    <div class="loading-row__bubble">
+      <span class="loading-row__dot" />
+      <span class="loading-row__dot" />
+      <span class="loading-row__dot" />
     </div>
   </div>
 </template>
@@ -23,12 +20,6 @@ const { t } = useI18n()
   display: flex;
   align-items: flex-start;
   gap: 8px;
-}
-
-.loading-row__body {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
 }
 
 .loading-row__avatar {
