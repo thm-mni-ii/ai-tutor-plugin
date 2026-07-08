@@ -31,6 +31,14 @@ const SCOPE_LABELS: Record<FeedbackScope, string> = {
 export function useBackend() {
   const { messages, isLoading, currentCellId, streamingContent, queuePosition } = useAiTutorStore()
 
+  // Holds the controller for the request currently in flight.
+  // Replaced at the start of each new request; null when idle.
+  let activeController: AbortController | null = null
+
+  function cancelRequest(): void {
+    activeController?.abort()
+  }
+
   async function fetchQueuePosition(): Promise<void> {
     try {
       const res = await fetch(`${getExtensionBaseUrl()}GdDS/queue`)
@@ -115,8 +123,8 @@ export function useBackend() {
     isLoading.value = true
 
     const pollInterval = setInterval(() => { void fetchQueuePosition() }, 2_000)
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 120_000)
+    activeController = new AbortController()
+    const timeoutId = setTimeout(() => activeController?.abort(), 120_000)
 
     try {
       const response = await fetch(`${getExtensionBaseUrl()}GdDS/stream`, {
@@ -131,7 +139,7 @@ export function useBackend() {
           cell_id: currentCellId.value,
           state: scope,
         }),
-        signal: controller.signal,
+        signal: activeController.signal,
       })
 
       if (!response.ok) throw new Error(`HTTP ${response.status}`)
@@ -146,6 +154,7 @@ export function useBackend() {
     } finally {
       clearTimeout(timeoutId)
       clearInterval(pollInterval)
+      activeController = null
       queuePosition.value = 0
       isLoading.value = false
     }
@@ -162,8 +171,8 @@ export function useBackend() {
     isLoading.value = true
 
     const pollInterval = setInterval(() => { void fetchQueuePosition() }, 2_000)
-    const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 120_000)
+    activeController = new AbortController()
+    const timeoutId = setTimeout(() => activeController?.abort(), 120_000)
 
     try {
       const response = await fetch(`${getExtensionBaseUrl()}GdDS/stream`, {
@@ -174,7 +183,7 @@ export function useBackend() {
         },
         // The history already includes the user message we just pushed above.
         body: JSON.stringify({ messages: messages.value }),
-        signal: controller.signal,
+        signal: activeController.signal,
       })
 
       if (!response.ok) throw new Error(`HTTP ${response.status}`)
@@ -191,10 +200,11 @@ export function useBackend() {
     } finally {
       clearTimeout(timeoutId)
       clearInterval(pollInterval)
+      activeController = null
       queuePosition.value = 0
       isLoading.value = false
     }
   }
 
-  return { sendScopedFeedback, sendFollowUpStream }
+  return { sendScopedFeedback, sendFollowUpStream, cancelRequest }
 }

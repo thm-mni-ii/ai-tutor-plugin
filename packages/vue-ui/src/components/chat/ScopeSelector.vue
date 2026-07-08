@@ -25,6 +25,7 @@ const scopes: FeedbackScope[] = ['cell', 'task', 'sheet']
     >
       {{ t(`scope.${scope}`) }}
     </button>
+    <span class="scope-selector__end"><slot /></span>
   </div>
 </template>
 
@@ -59,5 +60,11 @@ const scopes: FeedbackScope[] = ['cell', 'task', 'sheet']
 .scope-selector__btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.scope-selector__end {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
 }
 </style>

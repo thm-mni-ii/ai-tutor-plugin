@@ -19,7 +19,10 @@ export const i18n = createI18n({
         send: 'Senden',
         attachFile: 'Datei anhängen',
         removeAttachment: 'Anhang entfernen',
-        queuePosition: 'Warteschlange: {position}'
+        queuePosition: 'Warteschlange: {position}',
+        autoScrollOn: 'Auto-Scroll an',
+        autoScrollOff: 'Auto-Scroll aus',
+        cancelRequest: 'Abbrechen'
       },
       scope: {
         label: 'Feedback-Bereich wählen',
@@ -42,7 +45,10 @@ export const i18n = createI18n({
         send: 'Send',
         attachFile: 'Attach file',
         removeAttachment: 'Remove attachment',
-        queuePosition: 'Queue position: {position}'
+        queuePosition: 'Queue position: {position}',
+        autoScrollOn: 'Auto-scroll on',
+        autoScrollOff: 'Auto-scroll off',
+        cancelRequest: 'Cancel'
       },
       scope: {
         label: 'Choose feedback scope',

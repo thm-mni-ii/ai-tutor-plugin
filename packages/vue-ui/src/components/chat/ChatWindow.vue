@@ -18,13 +18,13 @@ const props = defineProps<{
 }>()
 
 const { messages, isLoading, streamingContent } = useAiTutorStore()
-const { sendScopedFeedback, sendFollowUpStream } = useBackend()
+const { sendScopedFeedback, sendFollowUpStream, cancelRequest } = useBackend()
 const { getNotebookData } = useNotebook(props.notebookTracker)
 const { t } = useI18n()
 
 const scrollContainer = ref<HTMLElement | null>(null)
 
-const { showScrollButton, scrollToBottom, handleScroll } = useAutoScroll(
+const { showScrollButton, autoScrollEnabled, scrollToBottom, handleScroll } = useAutoScroll(
   scrollContainer,
   () => `${messages.value.length}:${isLoading.value}:${streamingContent.value.length}`
 )
@@ -40,7 +40,19 @@ function handleSubmit(question: string): void {
 
 <template>
   <div class="chat-window">
-    <ScopeSelector @select="handleScope" />
+    <ScopeSelector @select="handleScope">
+      <template #controls>
+        <button
+          type="button"
+          class="scope-selector__autoscroll-btn"
+          :class="{ 'scope-selector__autoscroll-btn--off': !autoScrollEnabled }"
+          :title="autoScrollEnabled ? t('chat.autoScrollOn') : t('chat.autoScrollOff')"
+          @click="autoScrollEnabled = !autoScrollEnabled"
+        >
+          {{ autoScrollEnabled ? t('chat.autoScrollOn') : t('chat.autoScrollOff') }}
+        </button>
+      </template>
+    </ScopeSelector>
 
     <div class="chat-window__viewport">
       <div ref="scrollContainer" class="chat-window__messages" @scroll="handleScroll">
@@ -60,7 +72,17 @@ function handleSubmit(question: string): void {
 
         <!-- Waiting indicator: shown while loading but no tokens have arrived yet
              (e.g. queuing, network latency before first token) -->
-        <LoadingIndicator v-else-if="isLoading" />
+        <LoadingIndicator v-else-if="isLoading">
+          <template #action>
+            <button
+              type="button"
+              class="chat-window__cancel-btn"
+              @click="cancelRequest()"
+            >
+              {{ t('chat.cancelRequest') }}
+            </button>
+          </template>
+        </LoadingIndicator>
       </div>
 
       <ScrollToBottomButton :visible="showScrollButton" @click="scrollToBottom()" />
@@ -99,5 +121,44 @@ function handleSubmit(question: string): void {
   text-align: center;
   font-size: 12px;
   color: var(--jp-ui-font-color2);
+}
+
+.scope-selector__autoscroll-btn {
+  padding: 2px 8px;
+  font-size: var(--jp-ui-font-size0, 11px);
+  border: 1px solid var(--jp-border-color2);
+  border-radius: 10px;
+  background: var(--jp-layout-color1);
+  color: var(--jp-ui-font-color2);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.scope-selector__autoscroll-btn:hover {
+  background: var(--jp-layout-color2);
+  color: var(--jp-ui-font-color1);
+}
+
+.scope-selector__autoscroll-btn--off {
+  border-color: var(--jp-warn-color1);
+  color: var(--jp-warn-color1);
+}
+
+.chat-window__cancel-btn {
+  align-self: flex-start;
+  padding: 3px 10px;
+  font-size: var(--jp-ui-font-size0, 11px);
+  border: 1px solid var(--jp-error-color1);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--jp-error-color1);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.chat-window__cancel-btn:hover {
+  background: var(--jp-error-color1);
+  color: #fff;
 }
 </style>
