@@ -1,3 +1,5 @@
+import asyncio
+import itertools
 import json
 import os
 
@@ -26,6 +28,60 @@ _SYSTEM_PROMPT = (
     "Help students understand their code without revealing direct solutions. "
     "Ask guiding questions and explain concepts step by step. Keep answers concise."
 )
+
+# How many requests may be in flight to the LLM at once. The shared THM LLM
+# endpoint can only serve a handful of concurrent generations well; anything
+# beyond that queues up here instead of piling onto the LLM server directly.
+_MAX_CONCURRENT_LLM_REQUESTS = int(os.environ.get("MAX_CONCURRENT_LLM_REQUESTS", "1"))
+
+
+class _RequestQueue:
+    """FIFO queue capping how many requests are actively hitting the LLM.
+
+    Scoped to this single server process. Under JupyterHub each user
+    typically gets their own process, so this protects the shared LLM
+    endpoint from one user's own concurrent/rapid-fire requests (e.g.
+    multiple tabs). If this extension ever runs as a single process shared
+    by several users, the same queue transparently serializes across all
+    of them too.
+    """
+
+    def __init__(self, max_concurrent: int):
+        self._max_concurrent = max_concurrent
+        self._active = 0
+        self._waiting: list[int] = []
+        self._tickets = itertools.count()
+        self._condition = asyncio.Condition()
+
+    async def acquire(self) -> int:
+        ticket = next(self._tickets)
+        async with self._condition:
+            self._waiting.append(ticket)
+            try:
+                while self._active >= self._max_concurrent or self._waiting[0] != ticket:
+                    await self._condition.wait()
+            except BaseException:
+                # Client disconnected / task cancelled while queued — don't
+                # leave a dead ticket blocking everyone behind it.
+                if ticket in self._waiting:
+                    self._waiting.remove(ticket)
+                self._condition.notify_all()
+                raise
+            self._waiting.remove(ticket)
+            self._active += 1
+        return ticket
+
+    async def release(self) -> None:
+        async with self._condition:
+            self._active -= 1
+            self._condition.notify_all()
+
+    def position(self) -> int:
+        """Requests currently waiting in line — 0 means it's your turn now."""
+        return len(self._waiting)
+
+
+_llm_queue = _RequestQueue(_MAX_CONCURRENT_LLM_REQUESTS)
 
 
 def _build_scope_message(body: dict) -> str:
@@ -124,55 +180,62 @@ class StreamHandler(APIHandler):
             user_messages = body.get("messages", [])
             payload_messages = [{"role": "system", "content": _SYSTEM_PROMPT}, *user_messages]
 
-        self.set_header("Content-Type", "text/event-stream; charset=utf-8")
-        self.set_header("Cache-Control", "no-cache")
-        # Prevent nginx / JupyterHub from buffering the SSE stream.
-        self.set_header("X-Accel-Buffering", "no")
-
-        def on_chunk(chunk: bytes) -> None:
-            self.write(chunk)
-            self.flush()
-
-        client = httpclient.AsyncHTTPClient()
-        req = httpclient.HTTPRequest(
-            _LLM_URL,
-            method="POST",
-            body=json.dumps({
-                "model": _LLM_MODEL,
-                "messages": payload_messages,
-                "stream": True,
-                "max_tokens": 1024,
-            }),
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {_LLM_TOKEN}",
-            },
-            streaming_callback=on_chunk,
-            request_timeout=120.0,
-            # THM LLM server uses a self-signed certificate on port 4443.
-            validate_cert=False,
-        )
-
+        # Wait our turn before touching the LLM — caps how many generations
+        # run concurrently and lets QueueHandler report a real position
+        # while we're waiting.
+        await _llm_queue.acquire()
         try:
-            await client.fetch(req)
-        except Exception as e:
-            self.log.error(f"[AI Tutor] LLM stream error: {e}")
-            self.write(f"data: {json.dumps({'error': str(e)})}\n\n")
+            self.set_header("Content-Type", "text/event-stream; charset=utf-8")
+            self.set_header("Cache-Control", "no-cache")
+            # Prevent nginx / JupyterHub from buffering the SSE stream.
+            self.set_header("X-Accel-Buffering", "no")
+
+            def on_chunk(chunk: bytes) -> None:
+                self.write(chunk)
+                self.flush()
+
+            client = httpclient.AsyncHTTPClient()
+            req = httpclient.HTTPRequest(
+                _LLM_URL,
+                method="POST",
+                body=json.dumps({
+                    "model": _LLM_MODEL,
+                    "messages": payload_messages,
+                    "stream": True,
+                    "max_tokens": 1024,
+                }),
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {_LLM_TOKEN}",
+                },
+                streaming_callback=on_chunk,
+                request_timeout=120.0,
+                # THM LLM server uses a self-signed certificate on port 4443.
+                validate_cert=False,
+            )
+
+            try:
+                await client.fetch(req)
+            except Exception as e:
+                self.log.error(f"[AI Tutor] LLM stream error: {e}")
+                self.write(f"data: {json.dumps({'error': str(e)})}\n\n")
+            finally:
+                self.finish()
         finally:
-            self.finish()
+            await _llm_queue.release()
 
 
 class QueueHandler(APIHandler):
-    """Returns the user's current position in the LLM request queue.
+    """Returns the current position in the LLM request queue.
 
     GET response: { "position": <int> }
-    0 = being processed immediately (no wait).
-    Real queue logic arrives in M7 — this is the UI-ready stub.
+    0 = no one ahead in line right now.
+    Backed by the same _llm_queue that StreamHandler waits on.
     """
 
     @tornado.web.authenticated
     def get(self):
-        self.finish(json.dumps({"position": 0}))
+        self.finish(json.dumps({"position": _llm_queue.position()}))
 
 
 def setup_route_handlers(web_app):
