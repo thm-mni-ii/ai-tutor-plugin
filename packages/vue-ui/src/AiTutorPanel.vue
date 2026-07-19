@@ -4,10 +4,12 @@ import ChatWindow from './components/chat/ChatWindow.vue'
 import ModelSelector from './components/chat/ModelSelector.vue'
 import QueueBadge from './components/chat/QueueBadge.vue'
 
-defineProps<{
+const props = defineProps<{
   app: unknown
   notebookTracker: unknown
   isAdmin: boolean
+  username: string
+  backendUrl: string
 }>()
 
 const { t } = useI18n()
@@ -24,7 +26,12 @@ const { t } = useI18n()
       <ModelSelector />
     </header>
 
-    <ChatWindow class="ai-tutor-panel__chat" :notebook-tracker="notebookTracker" />
+    <ChatWindow
+      class="ai-tutor-panel__chat"
+      :notebook-tracker="notebookTracker"
+      :username="props.username"
+      :backend-url="props.backendUrl"
+    />
   </div>
 </template>
 

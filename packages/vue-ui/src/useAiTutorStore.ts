@@ -21,7 +21,7 @@ const currentCellId = ref<string | null>(null)
 const streamingContent = ref<string>('')
 
 // M4: position in the backend request queue (0 = no wait).
-// Updated by polling /GdDS/queue while a request is in-flight.
+// Updated by polling the ai-tutor-backend's /queue while a request is in-flight.
 const queuePosition = ref<number>(0)
 
 export function useAiTutorStore() {

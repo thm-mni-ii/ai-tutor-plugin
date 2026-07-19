@@ -11,6 +11,7 @@
   import { IDisposable } from '@lumino/disposable';
   import { ToolbarButton } from '@jupyterlab/apputils';
   import { ContentsManager } from '@jupyterlab/services';
+  import { PageConfig } from '@jupyterlab/coreutils';
   import { mountVueWidget, useAiTutorStore } from '@ai4ai/vue-ui';
   import '@ai4ai/vue-ui/index.css';
 
@@ -19,6 +20,21 @@
   import robotSvg from '../style/icons/robot.svg';
 
   const AUTH_URL = 'https://feedback.mni.thm.de/gdds';
+  // ai-tutor-backend base URL for chat streaming + queue position — set on the
+  // server via the BACKEND_URL env var (see GdDS/__init__.py), falls back to
+  // the THM test deployment for anyone running without that env var set.
+  const BACKEND_URL = PageConfig.getOption('backendUrl') || 'https://feedback.mni.thm.de/gdds-test';
+
+  // JupyterHub URLs look like /user/<username>/lab/... — extract it the same
+  // way authenticateUser() below does. Empty string outside JupyterHub (e.g.
+  // plain `jupyter lab` in local dev), which the backend treats as anonymous.
+  function getJupyterHubUsername(): string {
+    const username_list = window.location.pathname.split('/');
+    if (username_list[1] !== 'user' || !username_list[2]) {
+      return '';
+    }
+    return decodeURIComponent(username_list[2]);
+  }
 
   let taskFiles: folder[] = [];
 
@@ -200,7 +216,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
       this.title.caption = 'AI Tutor Hilfe und Dokumentation';
       const div = document.createElement('div');
       div.style.height = '100%';
-      mountVueWidget(div, { app, notebookTracker, isAdmin });
+      mountVueWidget(div, { app, notebookTracker, isAdmin, username: getJupyterHubUsername(), backendUrl: BACKEND_URL });
       this.node.appendChild(div);
       this.setupCellTracking(app);
     }

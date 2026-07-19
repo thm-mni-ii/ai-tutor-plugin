@@ -15,10 +15,12 @@ import ScopeSelector from './ScopeSelector.vue'
 
 const props = defineProps<{
   notebookTracker: unknown
+  username: string
+  backendUrl: string
 }>()
 
 const { messages, isLoading, streamingContent } = useAiTutorStore()
-const { sendScopedFeedback, sendFollowUpStream, cancelRequest } = useBackend()
+const { sendScopedFeedback, sendFollowUpStream, cancelRequest } = useBackend(props.backendUrl, props.username)
 const { getNotebookData } = useNotebook(props.notebookTracker)
 const { t } = useI18n()
 
@@ -34,7 +36,7 @@ function handleScope(scope: FeedbackScope): void {
 }
 
 function handleSubmit(question: string): void {
-  void sendFollowUpStream(question)
+  void sendFollowUpStream(question, getNotebookData())
 }
 </script>
 
