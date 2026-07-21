@@ -1,19 +1,8 @@
 import { useAiTutorStore } from './useAiTutorStore'
 import type { FeedbackScope } from './useAiTutorStore'
 
-// Derives the JupyterLab base URL so extension endpoints (/GdDS/...) work
-// on both standalone JupyterLab (/) and JupyterHub (/user/<name>/).
-function getExtensionBaseUrl(): string {
-  const match = /^(\/user\/[^/]+\/)/.exec(window.location.pathname)
-  return match ? `${window.location.origin}${match[1]}` : `${window.location.origin}/`
-}
-
-// Reads the XSRF token from the cookie so Tornado's CSRF protection accepts
-// POST requests from the Vue frontend to local /GdDS/* endpoints.
-function getXsrfToken(): string {
-  const match = /(?:^|;\s*)_xsrf=([^;]+)/.exec(document.cookie)
-  return match ? decodeURIComponent(match[1]!) : ''
-}
+// FastAPI backend URL. Change this if the backend runs on a different host.
+const BACKEND_URL = 'http://localhost:8000'
 
 export interface NotebookData {
   cells: unknown[]
@@ -41,7 +30,7 @@ export function useBackend() {
 
   async function fetchQueuePosition(): Promise<void> {
     try {
-      const res = await fetch(`${getExtensionBaseUrl()}GdDS/queue`)
+      const res = await fetch(`${BACKEND_URL}/queue`)
       if (res.ok) {
         const data = (await res.json()) as { position?: number }
         queuePosition.value = data.position ?? 0
@@ -87,13 +76,13 @@ export function useBackend() {
         try {
           const chunk = JSON.parse(data) as {
             error?: string
-            choices?: Array<{ delta?: { content?: string } }>
+            content?: string
           }
           if (chunk.error) {
             console.error('[AI Tutor] stream error from server:', chunk.error)
             return
           }
-          const token = chunk.choices?.[0]?.delta?.content ?? ''
+          const token = chunk.content ?? ''
           if (token) streamingContent.value += token
         } catch {
           // Skip malformed JSON lines — SSE streams can contain non-data lines.
@@ -127,11 +116,10 @@ export function useBackend() {
     const timeoutId = setTimeout(() => activeController?.abort(), 120_000)
 
     try {
-      const response = await fetch(`${getExtensionBaseUrl()}GdDS/stream`, {
+      const response = await fetch(`${BACKEND_URL}/prompt/stream`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-XSRFToken': getXsrfToken(),
         },
         body: JSON.stringify({
           notebook_text: notebook.cells,
@@ -175,11 +163,10 @@ export function useBackend() {
     const timeoutId = setTimeout(() => activeController?.abort(), 120_000)
 
     try {
-      const response = await fetch(`${getExtensionBaseUrl()}GdDS/stream`, {
+      const response = await fetch(`${BACKEND_URL}/prompt/stream`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-XSRFToken': getXsrfToken(),
         },
         // The history already includes the user message we just pushed above.
         body: JSON.stringify({ messages: messages.value }),
