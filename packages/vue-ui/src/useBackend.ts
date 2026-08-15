@@ -1,6 +1,9 @@
 import { useAiTutorStore } from './useAiTutorStore'
 import type { FeedbackScope } from './useAiTutorStore'
 
+// FastAPI backend URL. Change this if the backend runs on a different host.
+const BACKEND_URL = 'http://localhost:8000'
+
 export interface NotebookData {
   cells: unknown[]
   fileName: string
@@ -14,11 +17,7 @@ const SCOPE_LABELS: Record<FeedbackScope, string> = {
   sheet: 'Feedback zu allen Aufgaben',
 }
 
-// backendUrl points at the ai-tutor-backend FastAPI service (see
-// GdDS/__init__.py — injected via PageConfig from the BACKEND_URL env var).
-// username identifies the student for MongoDB logging and admin checks on
-// the backend; empty string outside JupyterHub (local dev).
-export function useBackend(backendUrl: string, username: string) {
+export function useBackend() {
   const { messages, isLoading, currentCellId, streamingContent, queuePosition } = useAiTutorStore()
 
   // Holds the controller for the request currently in flight.
@@ -31,7 +30,7 @@ export function useBackend(backendUrl: string, username: string) {
 
   async function fetchQueuePosition(): Promise<void> {
     try {
-      const res = await fetch(`${backendUrl}/queue`)
+      const res = await fetch(`${BACKEND_URL}/queue`)
       if (res.ok) {
         const data = (await res.json()) as { position?: number }
         queuePosition.value = data.position ?? 0
@@ -75,9 +74,6 @@ export function useBackend(backendUrl: string, username: string) {
         }
 
         try {
-          // ai-tutor-backend re-wraps each LLM token into a flat
-          // { content } chunk (see stream_request_to_server() in prompts.py)
-          // rather than forwarding the raw OpenAI choices[].delta shape.
           const chunk = JSON.parse(data) as {
             error?: string
             content?: string
@@ -105,9 +101,8 @@ export function useBackend(backendUrl: string, username: string) {
   }
 
   // Scope button handler: starts a fresh conversation, sends notebook data to
-  // the backend's /prompt/stream, and streams the initial feedback back token
-  // by token. The FastAPI endpoint builds the tutor prompt from the scope +
-  // notebook data, including the matching solution file for hints.
+  // /GdDS/stream, and streams the initial feedback back token by token.
+  // The Python StreamHandler builds the tutor prompt from the scope + notebook.
   async function sendScopedFeedback(scope: FeedbackScope, notebook: NotebookData): Promise<void> {
     if (isLoading.value) return
 
@@ -121,15 +116,16 @@ export function useBackend(backendUrl: string, username: string) {
     const timeoutId = setTimeout(() => activeController?.abort(), 120_000)
 
     try {
-      const response = await fetch(`${backendUrl}/prompt/stream`, {
+      const response = await fetch(`${BACKEND_URL}/prompt/stream`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({
           notebook_text: notebook.cells,
           file_name: notebook.fileName,
           cell_id: currentCellId.value,
           state: scope,
-          user_name: username,
         }),
         signal: activeController.signal,
       })
@@ -153,10 +149,8 @@ export function useBackend(backendUrl: string, username: string) {
   }
 
   // Follow-up chat: appends the user's question to the history, then streams
-  // the assistant reply from the backend's /prompt/stream. Notebook data is
-  // sent alongside so the backend can enrich the last message with the
-  // current cell's code (see get_code_example on the backend).
-  async function sendFollowUpStream(question: string, notebook: NotebookData): Promise<void> {
+  // the assistant reply. The full conversation context is sent to /GdDS/stream.
+  async function sendFollowUpStream(question: string): Promise<void> {
     if (isLoading.value) return
 
     // Optimistic update: show the user message immediately before the response arrives.
@@ -169,16 +163,13 @@ export function useBackend(backendUrl: string, username: string) {
     const timeoutId = setTimeout(() => activeController?.abort(), 120_000)
 
     try {
-      const response = await fetch(`${backendUrl}/prompt/stream`, {
+      const response = await fetch(`${BACKEND_URL}/prompt/stream`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
         // The history already includes the user message we just pushed above.
-        body: JSON.stringify({
-          messages: messages.value,
-          notebook_text: notebook.cells,
-          cell_id: currentCellId.value,
-          user_name: username,
-        }),
+        body: JSON.stringify({ messages: messages.value }),
         signal: activeController.signal,
       })
 
