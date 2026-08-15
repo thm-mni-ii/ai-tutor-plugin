@@ -1,9 +1,6 @@
 import { useAiTutorStore } from './useAiTutorStore'
 import type { FeedbackScope } from './useAiTutorStore'
 
-// FastAPI backend URL. Change this if the backend runs on a different host.
-const BACKEND_URL = 'http://localhost:8000'
-
 export interface NotebookData {
   cells: unknown[]
   fileName: string
@@ -17,8 +14,8 @@ const SCOPE_LABELS: Record<FeedbackScope, string> = {
   sheet: 'Feedback zu allen Aufgaben',
 }
 
-export function useBackend() {
-  const { messages, isLoading, currentCellId, streamingContent, queuePosition } = useAiTutorStore()
+export function useBackend(backendUrl: string, username: string) {
+  const { messages, isLoading, currentCellId, streamingContent, queuePosition, selectedModel } = useAiTutorStore()
 
   // Holds the controller for the request currently in flight.
   // Replaced at the start of each new request; null when idle.
@@ -30,7 +27,7 @@ export function useBackend() {
 
   async function fetchQueuePosition(): Promise<void> {
     try {
-      const res = await fetch(`${BACKEND_URL}/queue`)
+      const res = await fetch(`${backendUrl}/queue`)
       if (res.ok) {
         const data = (await res.json()) as { position?: number }
         queuePosition.value = data.position ?? 0
@@ -73,20 +70,35 @@ export function useBackend() {
           return
         }
 
+        let chunk: { error?: string; content?: string }
         try {
-          const chunk = JSON.parse(data) as {
-            error?: string
-            content?: string
-          }
-          if (chunk.error) {
-            console.error('[AI Tutor] stream error from server:', chunk.error)
-            return
-          }
-          const token = chunk.content ?? ''
-          if (token) streamingContent.value += token
+          chunk = JSON.parse(data)
         } catch {
           // Skip malformed JSON lines — SSE streams can contain non-data lines.
+          continue
         }
+
+        if (chunk.error) {
+          console.error('[AI Tutor] stream error from server:', chunk.error)
+          if (streamingContent.value) {
+            // Keep whatever was already generated instead of silently discarding it.
+            messages.value = [
+              ...messages.value,
+              { role: 'assistant', content: streamingContent.value },
+            ]
+            streamingContent.value = ''
+            return
+          }
+          // Nothing was generated yet — throw so the caller's catch block runs
+          // and rolls back the optimistic user message (see sendScopedFeedback /
+          // sendFollowUpStream). Without this, a mid-stream error left the
+          // failed user turn sitting in history, and the next request would
+          // send two consecutive "user" messages — which some models (e.g.
+          // Gemma) reject outright with a "roles must alternate" error.
+          throw new Error(chunk.error)
+        }
+        const token = chunk.content ?? ''
+        if (token) streamingContent.value += token
       }
     }
 
@@ -116,7 +128,7 @@ export function useBackend() {
     const timeoutId = setTimeout(() => activeController?.abort(), 120_000)
 
     try {
-      const response = await fetch(`${BACKEND_URL}/prompt/stream`, {
+      const response = await fetch(`${backendUrl}/prompt/stream`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -126,6 +138,8 @@ export function useBackend() {
           file_name: notebook.fileName,
           cell_id: currentCellId.value,
           state: scope,
+          user_name: username,
+          model: selectedModel.value,
         }),
         signal: activeController.signal,
       })
@@ -150,7 +164,7 @@ export function useBackend() {
 
   // Follow-up chat: appends the user's question to the history, then streams
   // the assistant reply. The full conversation context is sent to /GdDS/stream.
-  async function sendFollowUpStream(question: string): Promise<void> {
+  async function sendFollowUpStream(question: string, notebook: NotebookData): Promise<void> {
     if (isLoading.value) return
 
     // Optimistic update: show the user message immediately before the response arrives.
@@ -163,13 +177,22 @@ export function useBackend() {
     const timeoutId = setTimeout(() => activeController?.abort(), 120_000)
 
     try {
-      const response = await fetch(`${BACKEND_URL}/prompt/stream`, {
+      const response = await fetch(`${backendUrl}/prompt/stream`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         // The history already includes the user message we just pushed above.
-        body: JSON.stringify({ messages: messages.value }),
+        // notebook_text/cell_id are also sent so the backend can inject the
+        // current code context (see main.py _queued_stream), same as sendScopedFeedback.
+        body: JSON.stringify({
+          messages: messages.value,
+          notebook_text: notebook.cells,
+          file_name: notebook.fileName,
+          cell_id: currentCellId.value,
+          user_name: username,
+          model: selectedModel.value,
+        }),
         signal: activeController.signal,
       })
 

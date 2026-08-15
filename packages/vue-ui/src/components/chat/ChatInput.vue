@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 
-defineProps<{
+const props = defineProps<{
   disabled?: boolean
 }>()
 
@@ -13,6 +13,7 @@ const emit = defineEmits<{
 const { t } = useI18n()
 const draft = ref('')
 const fileInput = ref<HTMLInputElement | null>(null)
+const textarea = ref<HTMLTextAreaElement | null>(null)
 const attachedFileName = ref<string | null>(null)
 
 function submit(): void {
@@ -21,6 +22,20 @@ function submit(): void {
   emit('submit', question)
   draft.value = ''
 }
+
+// The field is disabled while a request is in flight (see ChatWindow.vue
+// :disabled="isLoading"), which browsers blur automatically. Re-focus it the
+// moment it re-enables so the next message can be typed without clicking
+// back into the field.
+watch(
+  () => props.disabled,
+  async (isDisabled, wasDisabled) => {
+    if (wasDisabled && !isDisabled) {
+      await nextTick()
+      textarea.value?.focus()
+    }
+  }
+)
 
 function onKeydown(event: KeyboardEvent): void {
   if (event.key === 'Enter' && !event.shiftKey) {
@@ -73,6 +88,7 @@ function clearAttachment(): void {
       <input ref="fileInput" type="file" class="chat-composer__file-input" @change="onFileChange" />
 
       <textarea
+        ref="textarea"
         v-model="draft"
         class="chat-composer__field"
         :placeholder="t('chat.inputPlaceholder')"

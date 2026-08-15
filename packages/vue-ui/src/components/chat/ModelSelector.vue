@@ -1,19 +1,22 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { useAiTutorStore } from '../../useAiTutorStore'
 
-// Model list and backend wiring are out of scope for now — UI only,
-// the backend currently always uses a single hardcoded model.
+// Real model identifiers as served by the THM LLM gateway (ki6.mni.thm.de).
+// Sent as `model` on /prompt/stream; see useBackend.ts.
 const models = [
-  { value: 'qwen3-coder-30b', label: 'Qwen3 Coder 30B' },
-  { value: 'qwen2.5-72b', label: 'Qwen2.5 72B' },
-  { value: 'qwen2.5-coder-7b', label: 'Qwen2.5 Coder 7B' }
+  { value: 'unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF/Qwen3-Coder-30B-A3B-Instruct-Q8_0.gguf', label: 'Qwen3 Coder 30B' },
+  // Gemma 3 27B — disabled for now: its server-side chat template rejects our
+  // requests with "Conversation roles must alternate user/assistant/..." even
+  // for a single user-only turn — looks like a gateway-side template issue,
+  // unrelated to what we send. Re-add once that's sorted out on the THM side.
+  // { value: 'unsloth/gemma-3-27b-it-GGUF/gemma-3-27b-it-Q8_0.gguf', label: 'Gemma 3 27B' },
 ]
 
-const selected = ref(models[0]!.value)
+const { selectedModel } = useAiTutorStore()
 </script>
 
 <template>
-  <select v-model="selected" class="model-selector">
+  <select v-model="selectedModel" class="model-selector">
     <option v-for="model in models" :key="model.value" :value="model.value">
       {{ model.label }}
     </option>
