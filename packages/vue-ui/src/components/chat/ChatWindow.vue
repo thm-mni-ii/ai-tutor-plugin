@@ -19,7 +19,7 @@ const props = defineProps<{
   backendUrl: string
 }>()
 
-const { messages, isLoading, streamingContent } = useAiTutorStore()
+const { messages, isLoading, streamingContent, activeCellLabel } = useAiTutorStore()
 const { sendScopedFeedback, sendFollowUpStream, cancelRequest } = useBackend(props.backendUrl, props.username)
 const { getNotebookData } = useNotebook(props.notebookTracker)
 const { t } = useI18n()
@@ -42,6 +42,12 @@ function handleSubmit(question: string): void {
 
 <template>
   <div class="chat-window">
+    <!-- Active cell indicator — shows which cell the AI will read when scope buttons are clicked -->
+    <div class="chat-window__cell-indicator" :class="{ 'chat-window__cell-indicator--none': !activeCellLabel }">
+      <span class="chat-window__cell-dot" />
+      {{ activeCellLabel ?? 'Keine Zelle ausgewählt — Zelle anklicken' }}
+    </div>
+
     <ScopeSelector @select="handleScope">
       <template #controls>
         <button
@@ -119,6 +125,37 @@ function handleSubmit(question: string): void {
   text-align: center;
   font-size: 12px;
   color: var(--jp-ui-font-color2);
+}
+
+.chat-window__cell-indicator {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  font-size: var(--jp-ui-font-size0, 11px);
+  color: var(--jp-ui-font-color1);
+  background: var(--jp-layout-color2);
+  border-bottom: 1px solid var(--jp-border-color2);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+}
+
+.chat-window__cell-indicator--none {
+  color: var(--jp-ui-font-color3);
+}
+
+.chat-window__cell-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--jp-brand-color1);
+  flex-shrink: 0;
+}
+
+.chat-window__cell-indicator--none .chat-window__cell-dot {
+  background: var(--jp-border-color1);
 }
 
 .scope-selector__autoscroll-btn {

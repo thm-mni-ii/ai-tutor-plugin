@@ -15,6 +15,9 @@ const messages = ref<ChatMessage[]>([])
 const isLoading = ref(false)
 const activeScope = ref<FeedbackScope | null>(null)
 const currentCellId = ref<string | null>(null)
+// Human-readable label for the currently tracked cell, e.g. "Zelle 3 · import pandas as pd…"
+// Set by the JupyterLab entry point (src/index.ts) whenever the active cell changes.
+const activeCellLabel = ref<string | null>(null)
 
 // M4: accumulates LLM tokens as they stream in; cleared when the full
 // message is committed to `messages`.
@@ -29,5 +32,5 @@ const queuePosition = ref<number>(0)
 const selectedModel = ref<string>('unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF/Qwen3-Coder-30B-A3B-Instruct-Q8_0.gguf')
 
 export function useAiTutorStore() {
-  return { messages, isLoading, activeScope, currentCellId, streamingContent, queuePosition, selectedModel }
+  return { messages, isLoading, activeScope, currentCellId, activeCellLabel, streamingContent, queuePosition, selectedModel }
 }

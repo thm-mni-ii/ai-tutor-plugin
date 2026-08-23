@@ -222,33 +222,46 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
     }
 
     private setupCellTracking(app: JupyterFrontEnd): void {
-      const { currentCellId } = useAiTutorStore();
+      const { currentCellId, activeCellLabel } = useAiTutorStore();
       const commands = app.commands;
 
-      // Watch for run commands
+      function makeCellLabel(cell: any, oneBasedIndex: number): string {
+        const source: string = cell.model.sharedModel?.source ?? '';
+        const firstLine = source.split('\n')[0].trim();
+        const preview = firstLine.length > 34 ? firstLine.slice(0, 34) + '…' : firstLine;
+        return preview ? `Zelle ${oneBasedIndex} · ${preview}` : `Zelle ${oneBasedIndex}`;
+      }
+
+      // Watch for run commands — track the cell that was just executed.
       commands.commandExecuted.connect((_, args) => {
         if (args.id === 'notebook:run-cell-and-select-next') {
           const currentNotebook = this.notebookTracker.currentWidget?.content
           const newCell = currentNotebook?.activeCell;
           if (!currentNotebook || !newCell) {
             currentCellId.value = null;
+            activeCellLabel.value = null;
             return;
           }
           const index = currentNotebook.widgets.indexOf(newCell);
           const previousCell = currentNotebook.widgets[index - 1];
+          if (!previousCell) return;
           currentCellId.value = previousCell.model.id;
+          activeCellLabel.value = makeCellLabel(previousCell, index); // index is already 1-based here
         }
       });
 
-      // Watch for selection changes
+      // Watch for selection changes — track whichever cell the student clicks.
       this.notebookTracker.activeCellChanged.connect(() => {
         const currentNotebook = this.notebookTracker.currentWidget?.content;
         const newCell = currentNotebook?.activeCell;
         if (!currentNotebook || !newCell) {
           currentCellId.value = null;
+          activeCellLabel.value = null;
           return;
         }
+        const cellIndex = currentNotebook.widgets.indexOf(newCell);
         currentCellId.value = newCell.model.id;
+        activeCellLabel.value = makeCellLabel(newCell, cellIndex + 1);
       });
     }
 

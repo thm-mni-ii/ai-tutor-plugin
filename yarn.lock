@@ -10,15 +10,18 @@ __metadata:
   resolution: "@ai4ai/vue-ui@workspace:packages/vue-ui"
   dependencies:
     "@tsconfig/node24": ^24.0.4
+    "@types/dompurify": ^3.2.0
     "@types/node": ^24.12.2
     "@vitejs/plugin-vue": ^6.0.6
     "@vue/eslint-config-typescript": ^14.7.0
     "@vue/tsconfig": ^0.9.1
+    dompurify: ^3.4.14
     eslint: ^10.2.1
     eslint-config-prettier: ^10.1.8
     eslint-plugin-oxlint: ~1.60.0
     eslint-plugin-vue: ~10.8.0
     jiti: ^2.6.1
+    marked: ^18.0.10
     npm-run-all2: ^8.0.4
     oxlint: ~1.60.0
     prettier: 3.8.3
@@ -4040,6 +4043,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@types/dompurify@npm:^3.2.0":
+  version: 3.2.0
+  resolution: "@types/dompurify@npm:3.2.0"
+  dependencies:
+    dompurify: "*"
+  checksum: 0194dd9024e76e856f3373e8b080c7a5ac9910543ac1ee85db45277efbbea820b2f27fe22c8a6f02bb51833e0a8540d732be0d11d156efd16cb0b97f88e41ebf
+  languageName: node
+  linkType: hard
+
 "@types/esrecurse@npm:^4.3.1":
   version: 4.3.1
   resolution: "@types/esrecurse@npm:4.3.1"
@@ -6624,6 +6636,18 @@ __metadata:
   dependencies:
     domelementtype: ^2.3.0
   checksum: 0f58f4a6af63e6f3a4320aa446d28b5790a009018707bce2859dcb1d21144c7876482b5188395a188dfa974238c019e0a1e610d2fc269a12b2c192ea2b0b131c
+  languageName: node
+  linkType: hard
+
+"dompurify@npm:*, dompurify@npm:^3.4.14":
+  version: 3.4.14
+  resolution: "dompurify@npm:3.4.14"
+  dependencies:
+    "@types/trusted-types": ^2.0.7
+  dependenciesMeta:
+    "@types/trusted-types":
+      optional: true
+  checksum: b33560cfe33df810449ab31d216d37d5d33aaa21843650bc9fc8e0a52b2f9c3e92d3574b3272b6ed701ac7f74e19ee0983689469a36fab68472528f568decb1d
   languageName: node
   linkType: hard
 
@@ -9454,6 +9478,15 @@ __metadata:
   bin:
     marked: bin/marked.js
   checksum: 0143f449ba253053bc27f48a1a2ab3a0619f3c1b527f5cd9eb6af9d879ab97c93d5d2b2c4ab81e8c42106f7f1731173c1f3aebfd176c66f1f2cd728aa9966cbf
+  languageName: node
+  linkType: hard
+
+"marked@npm:^18.0.10":
+  version: 18.0.10
+  resolution: "marked@npm:18.0.10"
+  bin:
+    marked: bin/marked.js
+  checksum: eba9a149310fd04e86ee5ac7ed40ac54916bae0b82eb7792e061c40fae34980886d7cd48aacb19d6a03530dda5988d4916f77fb860ff45de146af580ce0765ae
   languageName: node
   linkType: hard
 
