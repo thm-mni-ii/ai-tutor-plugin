@@ -27,8 +27,8 @@ export const i18n = createI18n({
       scope: {
         label: 'Feedback-Bereich wählen',
         cell: 'Aktuelle Zelle',
-        task: 'Aktuelle Aufgabe',
-        sheet: 'Alle Aufgaben'
+        task: 'Zur Aufgabe',
+        sheet: 'Zum Blatt'
       }
     },
     en: {

@@ -10,7 +10,7 @@ const emit = defineEmits<{
 const { isLoading } = useAiTutorStore()
 const { t } = useI18n()
 
-const scopes: FeedbackScope[] = ['cell', 'task', 'sheet']
+const scopes: FeedbackScope[] = ['task', 'sheet']
 </script>
 
 <template>

@@ -7,15 +7,24 @@ export interface NotebookData {
 }
 
 // Labels shown in the chat as the "user turn" when a scope button is clicked.
-// Keeps the conversation history readable: the student sees what they requested.
 const SCOPE_LABELS: Record<FeedbackScope, string> = {
   cell: 'Feedback zur aktuellen Zelle',
-  task: 'Feedback zur aktuellen Aufgabe',
-  sheet: 'Feedback zu allen Aufgaben',
+  task: 'Hilfe zur aktuellen Aufgabe',
+  sheet: 'Übersicht aller Aufgaben',
 }
 
 export function useBackend(backendUrl: string, username: string) {
-  const { messages, isLoading, currentCellId, streamingContent, queuePosition, selectedModel } = useAiTutorStore()
+  const {
+    messages,
+    isLoading,
+    currentCellId,
+    activeCellLabel,
+    lockedCellId,
+    streamingContent,
+    queuePosition,
+    selectedModel,
+    conversations,
+  } = useAiTutorStore()
 
   // Holds the controller for the request currently in flight.
   // Replaced at the start of each new request; null when idle.
@@ -112,13 +121,27 @@ export function useBackend(backendUrl: string, username: string) {
     }
   }
 
-  // Scope button handler: starts a fresh conversation, sends notebook data to
-  // /GdDS/stream, and streams the initial feedback back token by token.
-  // The Python StreamHandler builds the tutor prompt from the scope + notebook.
+  // Scope button handler: saves the current conversation (if non-empty) to
+  // history, then starts a fresh conversation for the selected scope.
   async function sendScopedFeedback(scope: FeedbackScope, notebook: NotebookData): Promise<void> {
     if (isLoading.value) return
 
-    // Scope buttons always start a new conversation.
+    // Save existing conversation before clearing — only if there's actual
+    // content beyond the initial scope label (i.e. the AI replied at least once).
+    if (messages.value.length > 1) {
+      conversations.value = [
+        {
+          id: Date.now(),
+          scope,
+          cellLabel: activeCellLabel.value,
+          lockedCellId: lockedCellId.value,
+          messages: [...messages.value],
+        },
+        ...conversations.value,
+      ].slice(0, 8) // keep at most 8 past conversations
+    }
+
+    lockedCellId.value = currentCellId.value
     messages.value = [{ role: 'user', content: SCOPE_LABELS[scope] }]
     streamingContent.value = ''
     isLoading.value = true
@@ -130,13 +153,11 @@ export function useBackend(backendUrl: string, username: string) {
     try {
       const response = await fetch(`${backendUrl}/prompt/stream`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           notebook_text: notebook.cells,
           file_name: notebook.fileName,
-          cell_id: currentCellId.value,
+          cell_id: lockedCellId.value,
           state: scope,
           user_name: username,
           model: selectedModel.value,
@@ -163,7 +184,7 @@ export function useBackend(backendUrl: string, username: string) {
   }
 
   // Follow-up chat: appends the user's question to the history, then streams
-  // the assistant reply. The full conversation context is sent to /GdDS/stream.
+  // the assistant reply. The full conversation context is sent to the backend.
   async function sendFollowUpStream(question: string, notebook: NotebookData): Promise<void> {
     if (isLoading.value) return
 
@@ -179,17 +200,12 @@ export function useBackend(backendUrl: string, username: string) {
     try {
       const response = await fetch(`${backendUrl}/prompt/stream`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        // The history already includes the user message we just pushed above.
-        // notebook_text/cell_id are also sent so the backend can inject the
-        // current code context (see main.py _queued_stream), same as sendScopedFeedback.
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: messages.value,
           notebook_text: notebook.cells,
           file_name: notebook.fileName,
-          cell_id: currentCellId.value,
+          cell_id: lockedCellId.value,
           user_name: username,
           model: selectedModel.value,
         }),
