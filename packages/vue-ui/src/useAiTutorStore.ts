@@ -9,14 +9,6 @@ export interface ChatMessage {
 
 export type FeedbackScope = 'cell' | 'task' | 'sheet'
 
-export interface ConversationSnapshot {
-  id: number
-  scope: FeedbackScope
-  cellLabel: string | null
-  lockedCellId: string | null
-  messages: ChatMessage[]
-}
-
 // All refs declared at module scope — every caller of useAiTutorStore()
 // shares the same reactive state, including code outside Vue components.
 const messages = ref<ChatMessage[]>([])
@@ -26,9 +18,6 @@ const currentCellId = ref<string | null>(null)
 // Human-readable label for the currently tracked cell, e.g. "Zelle 3 · import pandas as pd…"
 // Set by the JupyterLab entry point (src/index.ts) whenever the active cell changes.
 const activeCellLabel = ref<string | null>(null)
-// Cell that started the active conversation — locked by useBackend when a scope
-// button is clicked so follow-up questions stay grounded in the same cell.
-const lockedCellId = ref<string | null>(null)
 
 // M4: accumulates LLM tokens as they stream in; cleared when the full
 // message is committed to `messages`.
@@ -42,10 +31,6 @@ const queuePosition = ref<number>(0)
 // Falls back to the backend's LLM_MODEL env default when empty.
 const selectedModel = ref<string>('unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF/Qwen3-Coder-30B-A3B-Instruct-Q8_0.gguf')
 
-// In-session conversation history — populated when a scope button starts a new
-// conversation over an existing one. Cleared on page reload (no persistence).
-const conversations = ref<ConversationSnapshot[]>([])
-
 export function useAiTutorStore() {
   return {
     messages,
@@ -53,10 +38,8 @@ export function useAiTutorStore() {
     activeScope,
     currentCellId,
     activeCellLabel,
-    lockedCellId,
     streamingContent,
     queuePosition,
     selectedModel,
-    conversations,
   }
 }

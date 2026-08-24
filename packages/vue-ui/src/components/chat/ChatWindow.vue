@@ -12,7 +12,6 @@ import LoadingIndicator from './LoadingIndicator.vue'
 import ScrollToBottomButton from './ScrollToBottomButton.vue'
 import ChatInput from './ChatInput.vue'
 import ScopeSelector from './ScopeSelector.vue'
-import ConversationHistory from './ConversationHistory.vue'
 
 const props = defineProps<{
   notebookTracker: unknown
@@ -43,8 +42,6 @@ function handleSubmit(question: string): void {
 
 <template>
   <div class="chat-window">
-    <ConversationHistory />
-
     <!-- Active cell indicator — shows which cell the AI will read when scope buttons are clicked -->
     <div class="chat-window__cell-indicator" :class="{ 'chat-window__cell-indicator--none': !activeCellLabel }">
       <span class="chat-window__cell-dot" />
