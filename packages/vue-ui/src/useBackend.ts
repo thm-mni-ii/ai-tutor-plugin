@@ -176,7 +176,7 @@ export function useBackend(backendUrl: string, username: string) {
           messages: messages.value,
           notebook_text: notebook.cells,
           file_name: notebook.fileName,
-          cell_id: lockedCellId,
+          cell_id: lockedCellId ?? currentCellId.value,
           user_name: username,
           model: selectedModel.value,
         }),
