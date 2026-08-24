@@ -18,4 +18,4 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            DOCKER_HOST=unix://$XDG_RUNTIME_DIR/docker.sock docker compose up -d --build
+            DOCKER_HOST=unix://$XDG_RUNTIME_DIR/docker.sock docker compose up -d --build local_lab

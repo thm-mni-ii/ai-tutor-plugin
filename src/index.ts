@@ -19,7 +19,7 @@
 
   import robotSvg from '../style/icons/robot.svg';
 
-  const AUTH_URL = 'https://feedback.mni.thm.de/gdds';
+  const AUTH_URL = PageConfig.getOption('authBackendUrl') || 'https://feedback.mni.thm.de/gdds';
   // ai-tutor-backend base URL for chat streaming + queue position — set on the
   // server via the BACKEND_URL env var (see GdDS/__init__.py), falls back to
   // the THM test deployment for anyone running without that env var set.

@@ -22,7 +22,8 @@ except ImportError:
 # Where the Vue frontend calls the ai-tutor-backend FastAPI service (streaming,
 # queue position, auth, ...). Defaults to the THM test deployment; override for
 # local dev (e.g. http://localhost:8000).
-_BACKEND_URL = os.environ.get("BACKEND_URL", "https://feedback.mni.thm.de/gdds-test")
+_JUPYTER_BACKEND_URL = os.environ.get("BACKEND_URL", "https://feedback.mni.thm.de/gdds-test")
+_AUTH_BACKEND_URL = os.environ.get("AUTH_BACKEND_URL", "https://feedback.mni.thm.de/gdds")
 
 
 def _jupyter_labextension_paths():
@@ -50,6 +51,7 @@ def _load_jupyter_server_extension(server_app):
     # Exposes BACKEND_URL to the browser via JupyterLab's PageConfig — read on
     # the frontend with PageConfig.getOption('backendUrl').
     page_config = server_app.web_app.settings.setdefault("page_config_data", {})
-    page_config["backendUrl"] = _BACKEND_URL
+    page_config["backendUrl"] = _JUPYTER_BACKEND_URL
+    page_config["authBackendUrl"] = _AUTH_BACKEND_URL
     name = "GdDS"
     server_app.log.info(f"Registered {name} server extension")
