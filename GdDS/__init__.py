@@ -28,9 +28,9 @@ BASE_URL = os.environ.get("JUPYTERHUB_BASE_URL", "/")
 BACKEND_URL = os.environ.get("BACKEND_URL", "/services/jl-ai/")
 service_url = BASE_URL if BASE_URL.endswith("/") else f"{BASE_URL}/"
 if BACKEND_URL.startswith("/"):
-    service_url = f"{service_url}{BASE_URL[1:]}"
+    service_url = f"{service_url}{BACKEND_URL[1:]}"
 else:
-    service_url = f"{service_url}{BASE_URL}"
+    service_url = f"{service_url}{BACKEND_URL}"
 if not service_url.endswith("/"):
     service_url = f"{service_url}/"
 
