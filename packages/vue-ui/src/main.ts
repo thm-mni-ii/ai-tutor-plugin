@@ -47,7 +47,7 @@ const app = createApp(AiTutorPanel, {
   notebookTracker: null,
   isAdmin: true,
   username: 'dev-user',
-  backendUrl: 'http://localhost:8000',
+  backendUrl: 'http://localhost:8000/',
 })
 
 app.use(i18n)

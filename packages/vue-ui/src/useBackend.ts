@@ -32,7 +32,7 @@ export function useBackend(backendUrl: string, username: string) {
 
   async function fetchQueuePosition(): Promise<void> {
     try {
-      const res = await fetch(`${backendUrl}/queue`)
+      const res = await fetch(`${backendUrl}queue`)
       if (res.ok) {
         const data = (await res.json()) as { position?: number }
         queuePosition.value = data.position ?? 0
@@ -123,7 +123,7 @@ export function useBackend(backendUrl: string, username: string) {
     const timeoutId = setTimeout(() => activeController?.abort(), 120_000)
 
     try {
-      const response = await fetch(`${backendUrl}/prompt/stream`, {
+      const response = await fetch(`${backendUrl}prompt/stream`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -169,7 +169,7 @@ export function useBackend(backendUrl: string, username: string) {
     const timeoutId = setTimeout(() => activeController?.abort(), 120_000)
 
     try {
-      const response = await fetch(`${backendUrl}/prompt/stream`, {
+      const response = await fetch(`${backendUrl}prompt/stream`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

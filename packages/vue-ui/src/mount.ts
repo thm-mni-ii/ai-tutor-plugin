@@ -1,6 +1,7 @@
 import { createApp, type App as VueApp } from 'vue'
 import { i18n } from './i18n'
 import AiTutorPanel from './AiTutorPanel.vue'
+import { useAiTutorStore } from './useAiTutorStore.ts'
 // styles are provided from JupyterLab
 
 export type VueWidgetHandle = {
@@ -22,3 +23,7 @@ export function mountVueWidget(
     unmount: () => app.unmount()
   }
 }
+
+export {
+  useAiTutorStore
+};
