@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import ChatWindow from './components/chat/ChatWindow.vue'
-import ModelSelector from './components/chat/ModelSelector.vue'
 import QueueBadge from './components/chat/QueueBadge.vue'
 
 const props = defineProps<{
@@ -23,7 +22,6 @@ const { t } = useI18n()
         <span v-if="isAdmin" class="ai-tutor-panel__admin-badge">{{ t('chat.adminMode') }}</span>
         <QueueBadge />
       </div>
-      <ModelSelector />
     </header>
 
     <ChatWindow

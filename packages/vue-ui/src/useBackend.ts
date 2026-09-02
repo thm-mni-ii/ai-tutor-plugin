@@ -108,13 +108,21 @@ export function useBackend(backendUrl: string, username: string) {
     }
   }
 
-  // Scope button handler: locks the current cell, starts a fresh conversation,
-  // and streams the initial feedback from the backend.
+  function resetConversation(): void {
+    lockedCellId = null
+    messages.value = []
+    streamingContent.value = ''
+    activeController?.abort()
+    activeController = null
+  }
+
+  // Scope button handler: locks the current cell and appends a scope marker to
+  // the existing history so the student doesn't lose prior messages.
   async function sendScopedFeedback(scope: FeedbackScope, notebook: NotebookData): Promise<void> {
     if (isLoading.value) return
 
     lockedCellId = currentCellId.value
-    messages.value = [{ role: 'user', content: SCOPE_LABELS[scope] }]
+    messages.value = [...messages.value, { role: 'user', content: SCOPE_LABELS[scope] }]
     streamingContent.value = ''
     isLoading.value = true
 
@@ -202,5 +210,5 @@ export function useBackend(backendUrl: string, username: string) {
     }
   }
 
-  return { sendScopedFeedback, sendFollowUpStream, cancelRequest }
+  return { sendScopedFeedback, sendFollowUpStream, cancelRequest, resetConversation }
 }

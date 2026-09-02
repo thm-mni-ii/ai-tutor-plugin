@@ -12,9 +12,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const draft = ref('')
-const fileInput = ref<HTMLInputElement | null>(null)
 const textarea = ref<HTMLTextAreaElement | null>(null)
-const attachedFileName = ref<string | null>(null)
 
 function submit(): void {
   const question = draft.value.trim()
@@ -44,49 +42,11 @@ function onKeydown(event: KeyboardEvent): void {
   }
 }
 
-function openFilePicker(): void {
-  fileInput.value?.click()
-}
-
-// File attachments are UI-only for now: the backend has no upload endpoint
-// yet, so the picked file isn't actually sent anywhere.
-function onFileChange(event: Event): void {
-  const file = (event.target as HTMLInputElement).files?.[0]
-  attachedFileName.value = file ? file.name : null
-}
-
-function clearAttachment(): void {
-  attachedFileName.value = null
-  if (fileInput.value) fileInput.value.value = ''
-}
 </script>
 
 <template>
   <div class="chat-composer">
-    <div v-if="attachedFileName" class="chat-composer__attachment">
-      <span class="chat-composer__attachment-name">📎 {{ attachedFileName }}</span>
-      <button
-        type="button"
-        class="chat-composer__attachment-remove"
-        :aria-label="t('chat.removeAttachment')"
-        @click="clearAttachment"
-      >
-        ×
-      </button>
-    </div>
-
     <form class="chat-composer__row" @submit.prevent="submit">
-      <button
-        type="button"
-        class="chat-composer__icon-button"
-        :disabled="disabled"
-        :aria-label="t('chat.attachFile')"
-        @click="openFilePicker"
-      >
-        📎
-      </button>
-      <input ref="fileInput" type="file" class="chat-composer__file-input" @change="onFileChange" />
-
       <textarea
         ref="textarea"
         v-model="draft"
@@ -116,29 +76,6 @@ function clearAttachment(): void {
   border-top: 1px solid var(--jp-border-color2);
 }
 
-.chat-composer__attachment {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  width: fit-content;
-  margin-bottom: 6px;
-  padding: 3px 8px;
-  border-radius: 999px;
-  background: var(--jp-layout-color2);
-  font-size: 11px;
-  color: var(--jp-ui-font-color2);
-}
-
-.chat-composer__attachment-remove {
-  border: none;
-  background: none;
-  color: inherit;
-  font-size: 13px;
-  line-height: 1;
-  cursor: pointer;
-  padding: 0;
-}
-
 .chat-composer__row {
   display: flex;
   align-items: flex-end;
@@ -151,30 +88,6 @@ function clearAttachment(): void {
 
 .chat-composer__row:has(.chat-composer__field:focus) {
   border-color: var(--jp-brand-color1);
-}
-
-.chat-composer__file-input {
-  display: none;
-}
-
-.chat-composer__icon-button {
-  flex-shrink: 0;
-  width: 28px;
-  height: 28px;
-  border: none;
-  border-radius: 50%;
-  background: transparent;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.chat-composer__icon-button:hover {
-  background: var(--jp-layout-color2);
-}
-
-.chat-composer__icon-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
 }
 
 .chat-composer__field {

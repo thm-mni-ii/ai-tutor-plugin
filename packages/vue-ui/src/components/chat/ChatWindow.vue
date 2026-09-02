@@ -20,7 +20,7 @@ const props = defineProps<{
 }>()
 
 const { messages, isLoading, streamingContent, activeCellLabel } = useAiTutorStore()
-const { sendScopedFeedback, sendFollowUpStream, cancelRequest } = useBackend(props.backendUrl, props.username)
+const { sendScopedFeedback, sendFollowUpStream, cancelRequest, resetConversation } = useBackend(props.backendUrl, props.username)
 const { getNotebookData } = useNotebook(props.notebookTracker)
 const { t } = useI18n()
 
@@ -58,6 +58,15 @@ function handleSubmit(question: string): void {
           @click="autoScrollEnabled = !autoScrollEnabled"
         >
           {{ autoScrollEnabled ? t('chat.autoScrollOn') : t('chat.autoScrollOff') }}
+        </button>
+        <button
+          type="button"
+          class="scope-selector__reset-btn"
+          :disabled="isLoading || messages.length === 0"
+          :title="t('chat.newConversation')"
+          @click="resetConversation()"
+        >
+          {{ t('chat.newConversation') }}
         </button>
       </template>
     </ScopeSelector>
@@ -178,6 +187,28 @@ function handleSubmit(question: string): void {
 .scope-selector__autoscroll-btn--off {
   border-color: var(--jp-warn-color1);
   color: var(--jp-warn-color1);
+}
+
+.scope-selector__reset-btn {
+  padding: 2px 8px;
+  font-size: var(--jp-ui-font-size0, 11px);
+  border: 1px solid var(--jp-border-color2);
+  border-radius: 10px;
+  background: var(--jp-layout-color1);
+  color: var(--jp-ui-font-color2);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.scope-selector__reset-btn:hover:not(:disabled) {
+  border-color: var(--jp-error-color1);
+  color: var(--jp-error-color1);
+}
+
+.scope-selector__reset-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .chat-window__cancel-bar {

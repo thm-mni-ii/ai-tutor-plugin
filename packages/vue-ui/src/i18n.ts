@@ -22,7 +22,8 @@ export const i18n = createI18n({
         queuePosition: 'Warteschlange: {position}',
         autoScrollOn: 'Auto-Scroll an',
         autoScrollOff: 'Auto-Scroll aus',
-        cancelRequest: 'Abbrechen'
+        cancelRequest: 'Abbrechen',
+        newConversation: 'Neu starten'
       },
       scope: {
         label: 'Feedback-Bereich wählen',
@@ -48,7 +49,8 @@ export const i18n = createI18n({
         queuePosition: 'Queue position: {position}',
         autoScrollOn: 'Auto-scroll on',
         autoScrollOff: 'Auto-scroll off',
-        cancelRequest: 'Cancel'
+        cancelRequest: 'Cancel',
+        newConversation: 'New conversation'
       },
       scope: {
         label: 'Choose feedback scope',
