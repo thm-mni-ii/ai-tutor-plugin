@@ -163,7 +163,6 @@ async function authenticateUser(): Promise<false | UserResponse> {
         'Content-Type': 'application/json'
       },
       signal: controller.signal,
-      mode: 'no-cors',
     });
     if (response.ok) {
       const result = await response.json();
