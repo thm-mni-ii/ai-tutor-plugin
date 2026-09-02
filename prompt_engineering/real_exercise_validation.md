@@ -2,7 +2,15 @@
 
 **Date:** 02/09/2026
 **Repo:** ai-tutor-backend / app/prompts.py, app/helper.py, .env
-**Trigger:** `audit.md`, `baseline_test.md`, and `m10_iteration.md` (M9/M10) were written before real course exercises were available in the repo (`m10_iteration.md` explicitly notes "no course `.ipynb` files exist in either repo"). Real exercises + matching solutions are now staged at `ai-tutor-backend/srv/gdds/exercises/` (exercise_1, 2, 5, 6, each with a paired `solution_N`). This picks up FRP04/FRP05/FRP07 using that real content instead of synthetic exercises, and includes three real bugs found and fixed along the way.
+**Trigger:** `audit.md`, `baseline_test.md`, and `m10_iteration.md` (M9/M10) were written before real course exercises were available in the repo (`m10_iteration.md` explicitly notes "no course `.ipynb` files exist in either repo"). Real exercises + matching solutions are now staged at `ai-tutor-backend/srv/gdds/exercises/` (exercise_1, 2, 5, 6, each with a paired `solution_N`). This picks up FRP04/FRP05/FRP07 using that real content instead of synthetic exercises, and includes four real bugs found and fixed along the way.
+
+### 6. Bug fixed: sheet scope narrowed into one subtask instead of giving an overview
+
+Found while testing "all exercises" against a completely untouched real notebook (every Eigenversuch cell empty): instead of a broad status overview, the response picked one specific subtask (Aufgabe 2a) and coached through it exactly like task scope would. Root cause: `get_sheet_prompt()` shares nearly the same 12 rules as `get_task_prompt()` verbatim, including rule 7 ("focus only on their current problem or next step") — a narrowing instruction appropriate for task scope but never differentiated for sheet scope. With a mostly-empty notebook giving the model nothing to survey, it fell back to the narrowing behavior rule 7 pushes toward.
+
+**Fixed** by adding an explicit rule 13 to the sheet prompt and rewriting its closing framing paragraph to state this is an overview request, not a single-task walkthrough, and to only go deep on one exercise if the student has already made substantial progress there specifically. Verified live against the real, untouched exercise_1 notebook — went from narrowing into "Aufgabe 2a" to a full status overview across all four exercises with a suggested next step.
+
+**Operational note surfaced by this fix:** prompt changes in `app/prompts.py` don't take effect until the corresponding MongoDB `config` entry is cleared — `get_or_insert_config_entry` only writes a default when the key is absent. Anyone testing prompt changes locally needs to delete the relevant key (e.g. `db.config.deleteOne({key:'sheet_prompt'})`) after a code change, or they'll keep seeing the old behavior despite the code being correct.
 
 ---
 
