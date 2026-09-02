@@ -34,9 +34,6 @@ else:
 if not service_url.endswith("/"):
     service_url = f"{service_url}/"
 
-TEST_DEPLOYMENT = os.environ.get("TEST_DEPLOYMENT")
-
-
 def _jupyter_labextension_paths():
     return [{"src": "labextension", "dest": "GdDS"}]
 
@@ -58,6 +55,5 @@ def _load_jupyter_server_extension(server_app):
     # the frontend with PageConfig.getOption('backendUrl').
     page_config = server_app.web_app.settings.setdefault("page_config_data", {})
     page_config["gddsServiceUrl"] = service_url
-    page_config["gddsTestDeployment"] = TEST_DEPLOYMENT
     name = "GdDS"
     server_app.log.info(f"Registered {name} server extension")

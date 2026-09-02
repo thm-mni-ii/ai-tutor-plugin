@@ -24,8 +24,6 @@ import robotSvg from '../style/icons/robot.svg';
 // the THM test deployment for anyone running without that env var set.
 const BACKEND_URL = PageConfig.getOption('gddsServiceUrl') || 'https://feedback.mni.thm.de/gdds/';
 
-const TEST_DEPLOYMENT = PageConfig.getOption('gddsTestDeployment') || 'false';
-
 
 let taskFiles: folder[] = [];
 
@@ -158,20 +156,14 @@ interface UserResponse  {
 
 // Authentifikationsfunktion
 async function authenticateUser(): Promise<false | UserResponse> {
-  if (TEST_DEPLOYMENT == "true") {
-    return {
-      user_found: true,
-      username: 'dummy',
-      is_admin: true
-    };
-  }
   try {
     const response = await fetch(BACKEND_URL + "authenticate", {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json'
       },
-      signal: controller.signal
+      signal: controller.signal,
+      mode: 'no-cors',
     });
     if (response.ok) {
       const result = await response.json();
