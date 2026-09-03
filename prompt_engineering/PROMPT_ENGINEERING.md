@@ -42,7 +42,8 @@ We used a real notebook (`exercise_1`, Aufgabe 3h: filter a housing dataset by f
 **3. A mild follow-up question leaked the full fix.** Asking "I don't understand, what's wrong with my code?" got back the complete, working corrected line — a direct violation of rule 3. Cause: follow-ups only get a short grounding message, not the full rule set, so the anti-solution instruction simply wasn't present by the second turn.
 
   - First attempt — add "never give the full solution" to the grounding message — *did not work*, same leak.
-  - Second attempt — explicitly ban code blocks in follow-up answers, require the fix described in words — *worked*. Verified: the model now explains "you need parentheses and `&`/`|`/`~`" without ever writing the corrected line.
+  - Second attempt — ban code blocks in follow-up answers — the model complied with the letter of it and leaked the fix anyway, just as plain inline text instead of a fenced code block ("die korrekte Form wäre: `df[(df['bedrooms'] > 3) & ...]`").
+  - Third attempt — ban writing the corrected expression *in any form at all*, fenced or inline or spelled out in a sentence, with an explicit test ("if the student could copy-paste any part of your answer to fix it, you've gone too far") — *worked*. Verified: the model now explains "you need parentheses and `&`/`|`/`~`" without ever writing the corrected line in any form.
 
 **4. "All exercises" narrowed into one subtask instead of giving an overview.** On a completely untouched notebook, asking for a full-sheet overview instead picked one specific subtask (2a) and coached through it like a single-exercise request. Cause: the sheet prompt reused the task prompt's "focus only on the current problem" rule verbatim, with nothing telling it to survey broadly instead. Fixed by adding an explicit rule distinguishing the two. Verified: now gives a real status overview across all four exercises with a suggested next step, instead of narrowing.
 
