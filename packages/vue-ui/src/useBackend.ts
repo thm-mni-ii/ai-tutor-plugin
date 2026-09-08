@@ -14,7 +14,7 @@ const SCOPE_LABELS: Record<FeedbackScope, string> = {
 }
 
 export function useBackend(backendUrl: string, username: string) {
-  const { messages, isLoading, currentCellId, streamingContent, queuePosition, selectedModel } = useAiTutorStore()
+  const { messages, isLoading, activeScope, currentCellId, streamingContent, queuePosition, selectedModel } = useAiTutorStore()
 
   // Holds the controller for the request currently in flight.
   // Replaced at the start of each new request; null when idle.
@@ -110,6 +110,7 @@ export function useBackend(backendUrl: string, username: string) {
 
   function resetConversation(): void {
     lockedCellId = null
+    activeScope.value = null
     messages.value = []
     streamingContent.value = ''
     activeController?.abort()
@@ -122,6 +123,7 @@ export function useBackend(backendUrl: string, username: string) {
     if (isLoading.value) return
 
     lockedCellId = currentCellId.value
+    activeScope.value = scope
     messages.value = [...messages.value, { role: 'user', content: SCOPE_LABELS[scope] }]
     streamingContent.value = ''
     isLoading.value = true
@@ -135,6 +137,7 @@ export function useBackend(backendUrl: string, username: string) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          messages: messages.value,
           notebook_text: notebook.cells,
           file_name: notebook.fileName,
           cell_id: lockedCellId,
@@ -185,6 +188,7 @@ export function useBackend(backendUrl: string, username: string) {
           notebook_text: notebook.cells,
           file_name: notebook.fileName,
           cell_id: lockedCellId ?? currentCellId.value,
+          state: activeScope.value ?? 'cell',
           user_name: username,
           model: selectedModel.value,
         }),
