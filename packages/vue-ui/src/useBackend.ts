@@ -179,12 +179,24 @@ export function useBackend(backendUrl: string, username: string) {
     }
   }
 
+  // Most recent context the backend actually echoed back to us, if any —
+  // sent as `previous_context` on the next follow-up so the backend can tell
+  // which cells actually changed instead of treating everything as new.
+  function lastKnownContext(): SentContext | null {
+    for (let i = messages.value.length - 1; i >= 0; i--) {
+      const context = messages.value[i]?.context
+      if (context) return context
+    }
+    return null
+  }
+
   // Follow-up chat: appends the user's question to the history, then streams
   // the assistant reply. Uses lockedCellId so context doesn't shift if the
   // student has clicked a different cell since the conversation started.
   async function sendFollowUpStream(question: string, notebook: NotebookData): Promise<void> {
     if (isLoading.value) return
 
+    const previousContext = lastKnownContext()
     messages.value = [...messages.value, { role: 'user', content: question, context: null }]
     streamingContent.value = ''
     isLoading.value = true
@@ -205,6 +217,7 @@ export function useBackend(backendUrl: string, username: string) {
           state: activeScope.value ?? 'cell',
           user_name: username,
           model: selectedModel.value,
+          previous_context: previousContext,
         }),
         signal: activeController.signal,
       })

@@ -11,6 +11,23 @@ const { t } = useI18n()
 
 const cellCount = computed(() => props.context.cells.length)
 const errorCount = computed(() => props.context.cells.filter((cell) => cell.error).length)
+
+// What a reader actually wants to see: the cell the question is about, plus
+// any other cell that genuinely changed. On a first message every cell in
+// the exercise reads as "new" (nothing to diff against yet) — without this,
+// that would still dump the whole exercise here instead of just the one
+// cell the student is asking about.
+const activeCell = computed(
+  () => props.context.cells.find((cell) => cell.id === props.context.cell_id) ?? null
+)
+const otherChangedCells = computed(() =>
+  props.context.cells.filter((cell) => cell.id !== props.context.cell_id && cell.status === 'changed')
+)
+const highlightedCells = computed(() => [
+  ...(activeCell.value ? [activeCell.value] : []),
+  ...otherChangedCells.value,
+])
+const hiddenCount = computed(() => cellCount.value - highlightedCells.value.length)
 </script>
 
 <template>
@@ -24,7 +41,11 @@ const errorCount = computed(() => props.context.cells.filter((cell) => cell.erro
         {{ t('context.solutionIncluded') }}
       </p>
 
-      <div v-for="(cell, index) in context.cells" :key="cell.id ?? index" class="context-disclosure__cell">
+      <p v-if="hiddenCount > 0" class="context-disclosure__unchanged-summary">
+        {{ t('context.unchangedSummary', { count: hiddenCount }) }}
+      </p>
+
+      <div v-for="(cell, index) in highlightedCells" :key="cell.id ?? index" class="context-disclosure__cell">
         <div class="context-disclosure__cell-header">
           <span class="context-disclosure__cell-type">{{ cell.cell_type }}</span>
           <span class="context-disclosure__cell-status">{{ t(`context.${cell.status}`) }}</span>
@@ -93,7 +114,8 @@ const errorCount = computed(() => props.context.cells.filter((cell) => cell.erro
   gap: 8px;
 }
 
-.context-disclosure__solution-note {
+.context-disclosure__solution-note,
+.context-disclosure__unchanged-summary {
   margin: 0;
   font-style: italic;
 }

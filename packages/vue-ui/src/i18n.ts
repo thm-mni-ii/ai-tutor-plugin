@@ -37,7 +37,10 @@ export const i18n = createI18n({
         outputs: 'Ausgaben',
         errors: '{count} Fehler',
         solutionIncluded: 'Eine Referenzlösung wurde zum internen Vergleich des Tutors einbezogen (wird nicht angezeigt)',
-        unchanged: 'unverändert'
+        unchanged: 'unverändert',
+        new: 'neu',
+        changed: 'geändert',
+        unchangedSummary: '+ {count} weitere Zellen im Kontext (nicht angezeigt)'
       }
     },
     en: {
@@ -72,7 +75,10 @@ export const i18n = createI18n({
         outputs: 'Outputs',
         errors: '{count} errors',
         solutionIncluded: "A reference solution was included for the tutor's internal comparison (not shown)",
-        unchanged: 'unchanged'
+        unchanged: 'unchanged',
+        new: 'new',
+        changed: 'changed',
+        unchangedSummary: '+ {count} more cells in context (not shown)'
       }
     }
   }
