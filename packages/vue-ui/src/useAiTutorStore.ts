@@ -2,9 +2,48 @@ import { ref } from 'vue'
 
 export type MessageRole = 'user' | 'assistant'
 
+// Mirrors the backend's `_context_cell` allowlist (ai-tutor-backend/app/prompts.py) —
+// exactly what the tutor saw for one notebook cell, never anything more.
+export interface SentCellOutput {
+  type: string
+  text: string
+}
+
+export interface SentCellError {
+  ename: string
+  evalue: string
+  traceback_head: string
+}
+
+export interface SentCell {
+  id: string | null
+  cell_type: string
+  source: string
+  // 'unchanged' is the only value the backend sends until §3's delta tracking
+  // lands; new/changed will follow the same key naming under `context.*` in i18n.
+  status: string
+  outputs?: SentCellOutput[]
+  error?: SentCellError
+}
+
+// The context block echoed by the backend as the first SSE frame — see
+// ARCHITECTURE_PLAN_v3.md §2. `has_reference_solution` is a boolean only,
+// never the solution text itself.
+export interface SentContext {
+  scope: string
+  cell_id: string | null
+  file_name: string | null
+  cells: SentCell[]
+  removed_cell_ids: string[]
+  has_reference_solution: boolean
+}
+
 export interface ChatMessage {
   role: MessageRole
   content: string
+  // Only ever set on user-turn messages; null until the backend's context
+  // frame arrives, absent entirely on assistant turns.
+  context?: SentContext | null
 }
 
 export type FeedbackScope = 'cell' | 'task' | 'sheet'

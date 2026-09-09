@@ -1,5 +1,5 @@
 import { useAiTutorStore } from './useAiTutorStore'
-import type { FeedbackScope } from './useAiTutorStore'
+import type { FeedbackScope, SentContext } from './useAiTutorStore'
 
 export interface NotebookData {
   cells: unknown[]
@@ -75,10 +75,22 @@ export function useBackend(backendUrl: string, username: string) {
           return
         }
 
-        let chunk: { error?: string; content?: string }
+        let chunk: { error?: string; content?: string; context?: SentContext }
         try {
           chunk = JSON.parse(data)
         } catch {
+          continue
+        }
+
+        // Context frame: sent once, before any token, and only ever attaches
+        // to the user message that triggered this turn (see ARCHITECTURE_PLAN_v3.md §2).
+        if (chunk.context) {
+          const lastIndex = messages.value.length - 1
+          if (lastIndex >= 0 && messages.value[lastIndex]?.role === 'user') {
+            messages.value = messages.value.map((message, index) =>
+              index === lastIndex ? { ...message, context: chunk.context } : message
+            )
+          }
           continue
         }
 
@@ -124,7 +136,7 @@ export function useBackend(backendUrl: string, username: string) {
 
     lockedCellId = currentCellId.value
     activeScope.value = scope
-    messages.value = [...messages.value, { role: 'user', content: SCOPE_LABELS[scope] }]
+    messages.value = [...messages.value, { role: 'user', content: SCOPE_LABELS[scope], context: null }]
     streamingContent.value = ''
     isLoading.value = true
 
@@ -152,9 +164,11 @@ export function useBackend(backendUrl: string, username: string) {
       await readStream(response)
     } catch (err: unknown) {
       streamingContent.value = ''
-      messages.value = []
       if (err instanceof Error && err.name !== 'AbortError') {
         console.error('[AI Tutor] sendScopedFeedback failed:', err.message)
+        if (messages.value.at(-1)?.role === 'user') {
+          messages.value = messages.value.slice(0, -1)
+        }
       }
     } finally {
       clearTimeout(timeoutId)
@@ -171,7 +185,7 @@ export function useBackend(backendUrl: string, username: string) {
   async function sendFollowUpStream(question: string, notebook: NotebookData): Promise<void> {
     if (isLoading.value) return
 
-    messages.value = [...messages.value, { role: 'user', content: question }]
+    messages.value = [...messages.value, { role: 'user', content: question, context: null }]
     streamingContent.value = ''
     isLoading.value = true
 

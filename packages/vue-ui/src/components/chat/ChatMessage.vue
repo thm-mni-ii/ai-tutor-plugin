@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import type { ChatMessage } from '../../useAiTutorStore'
+import ContextDisclosure from './ContextDisclosure.vue'
 
 const props = defineProps<{
   message: ChatMessage
@@ -28,21 +29,27 @@ const renderedContent = computed(() => {
     <div class="chat-message__avatar">
       {{ props.message.role === 'user' ? t('chat.you') : 'AI' }}
     </div>
-    <div class="chat-message__bubble">
-      <!-- User messages and in-flight streaming: plain text interpolation so
-           white-space: pre-wrap preserves newlines without v-html overhead. -->
-      <p
-        v-if="props.message.role === 'user' || props.streaming"
-        class="chat-message__content"
-        :class="{ 'chat-message__content--streaming': props.streaming }"
-      >{{ props.message.content }}</p>
-
-      <!-- Completed AI messages: markdown rendered and sanitized. -->
-      <div
-        v-else
-        class="chat-message__content"
-        v-html="renderedContent"
+    <div class="chat-message__column">
+      <ContextDisclosure
+        v-if="props.message.role === 'user' && props.message.context"
+        :context="props.message.context"
       />
+      <div class="chat-message__bubble">
+        <!-- User messages and in-flight streaming: plain text interpolation so
+             white-space: pre-wrap preserves newlines without v-html overhead. -->
+        <p
+          v-if="props.message.role === 'user' || props.streaming"
+          class="chat-message__content"
+          :class="{ 'chat-message__content--streaming': props.streaming }"
+        >{{ props.message.content }}</p>
+
+        <!-- Completed AI messages: markdown rendered and sanitized. -->
+        <div
+          v-else
+          class="chat-message__content"
+          v-html="renderedContent"
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -80,12 +87,15 @@ const renderedContent = computed(() => {
   color: var(--jp-ui-font-color1);
 }
 
-.chat-message__bubble {
+.chat-message__column {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   min-width: 0;
   max-width: 82%;
 }
 
-.chat-message--assistant .chat-message__bubble {
+.chat-message--assistant .chat-message__column {
   max-width: 92%;
 }
 

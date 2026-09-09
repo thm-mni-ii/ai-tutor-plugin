@@ -30,6 +30,14 @@ export const i18n = createI18n({
         cell: 'Aktuelle Zelle',
         task: 'Zur Aufgabe',
         sheet: 'Zum Blatt'
+      },
+      context: {
+        title: 'Gesendeter Kontext',
+        cells: '{count} Zellen',
+        outputs: 'Ausgaben',
+        errors: '{count} Fehler',
+        solutionIncluded: 'Eine Referenzlösung wurde zum internen Vergleich des Tutors einbezogen (wird nicht angezeigt)',
+        unchanged: 'unverändert'
       }
     },
     en: {
@@ -57,6 +65,14 @@ export const i18n = createI18n({
         cell: 'Current cell',
         task: 'Current exercise',
         sheet: 'All exercises'
+      },
+      context: {
+        title: 'Sent context',
+        cells: '{count} cells',
+        outputs: 'Outputs',
+        errors: '{count} errors',
+        solutionIncluded: "A reference solution was included for the tutor's internal comparison (not shown)",
+        unchanged: 'unchanged'
       }
     }
   }

@@ -1,6 +1,14 @@
 export { mountVueWidget } from './mount'
 export type { VueWidgetHandle } from './mount'
 export { useAiTutorStore } from './useAiTutorStore'
-export type { ChatMessage, FeedbackScope, MessageRole } from './useAiTutorStore'
+export type {
+  ChatMessage,
+  FeedbackScope,
+  MessageRole,
+  SentCell,
+  SentCellError,
+  SentCellOutput,
+  SentContext
+} from './useAiTutorStore'
 export { useBackend } from './useBackend'
 export type { NotebookData } from './useBackend'
