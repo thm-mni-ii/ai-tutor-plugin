@@ -15,7 +15,16 @@ const SCOPE_LABELS: Record<FeedbackScope, string> = {
 }
 
 export function useBackend(backendUrl: string, username: string) {
-  const { messages, isLoading, currentCellId, streamingContent, queuePosition, selectedModel } = useAiTutorStore()
+  const { messages, isLoading, currentCellId, streamingContent, queuePosition, selectedModel, customScopes, sessions, currentSessionId, activeScope, difficulty } = useAiTutorStore()
+
+  function getScopeLabel(scope: string): string {
+    if (scope.startsWith('custom_')) {
+      const id = scope.slice(7)
+      const custom = customScopes.value.find(c => c.id === id)
+      return custom ? custom.label : scope
+    }
+    return SCOPE_LABELS[scope as FeedbackScope] || scope
+  }
 
   // Holds the controller for the request currently in flight.
   // Replaced at the start of each new request; null when idle.
@@ -70,12 +79,16 @@ export function useBackend(backendUrl: string, username: string) {
           return
         }
 
-        let chunk: { error?: string; content?: string }
+        let chunk: { error?: string; content?: string; session_id?: string }
         try {
           chunk = JSON.parse(data)
         } catch {
           // Skip malformed JSON lines — SSE streams can contain non-data lines.
           continue
+        }
+
+        if (chunk.session_id) {
+          currentSessionId.value = chunk.session_id
         }
 
         if (chunk.error) {
@@ -119,7 +132,7 @@ export function useBackend(backendUrl: string, username: string) {
     if (isLoading.value) return
 
     // Scope buttons always start a new conversation.
-    messages.value = [{ role: 'user', content: SCOPE_LABELS[scope] }]
+    messages.value = [{ role: 'user', content: getScopeLabel(scope) }]
     streamingContent.value = ''
     isLoading.value = true
 
@@ -134,12 +147,15 @@ export function useBackend(backendUrl: string, username: string) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          messages: messages.value,
           notebook_text: notebook.cells,
           file_name: notebook.fileName,
           cell_id: currentCellId.value,
           state: scope,
           user_name: username,
           model: selectedModel.value,
+          difficulty: difficulty.value,
+          session_id: currentSessionId.value,
         }),
         signal: activeController.signal,
       })
@@ -159,6 +175,7 @@ export function useBackend(backendUrl: string, username: string) {
       activeController = null
       queuePosition.value = 0
       isLoading.value = false
+      setTimeout(() => fetchSessions(), 500)
     }
   }
 
@@ -192,6 +209,8 @@ export function useBackend(backendUrl: string, username: string) {
           cell_id: currentCellId.value,
           user_name: username,
           model: selectedModel.value,
+          difficulty: difficulty.value,
+          session_id: currentSessionId.value,
         }),
         signal: activeController.signal,
       })
@@ -213,8 +232,89 @@ export function useBackend(backendUrl: string, username: string) {
       activeController = null
       queuePosition.value = 0
       isLoading.value = false
+      setTimeout(() => fetchSessions(), 500)
     }
   }
 
-  return { sendScopedFeedback, sendFollowUpStream, cancelRequest }
+  // Session Management
+  async function fetchSessions(): Promise<void> {
+    try {
+      const res = await fetch(`${backendUrl}/sessions`)
+      if (res.ok) {
+        sessions.value = await res.json()
+      }
+    } catch (err) {
+      console.error('[AI Tutor] fetchSessions failed:', err)
+    }
+  }
+
+  async function loadSession(sessionId: string): Promise<void> {
+    try {
+      const res = await fetch(`${backendUrl}/sessions/${sessionId}`)
+      if (res.ok) {
+        const session = await res.json()
+        messages.value = session.messages || []
+        currentSessionId.value = session.id
+        activeScope.value = session.scope
+      }
+    } catch (err) {
+      console.error('[AI Tutor] loadSession failed:', err)
+    }
+  }
+
+  // Ratings
+  async function submitRating(messageId: string, rating: number): Promise<void> {
+    if (!currentSessionId.value) return
+    try {
+      await fetch(`${backendUrl}/ratings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message_id: messageId, session_id: currentSessionId.value, rating })
+      })
+    } catch (err) {
+      console.error('[AI Tutor] submitRating failed:', err)
+    }
+  }
+
+  // Custom Prompts Management
+  async function fetchCustomScopes(): Promise<void> {
+    try {
+      const res = await fetch(`${backendUrl}/custom_prompts`)
+      if (res.ok) {
+        customScopes.value = await res.json()
+      }
+    } catch (err) {
+      console.error('[AI Tutor] fetchCustomScopes failed:', err)
+    }
+  }
+
+  async function saveCustomScope(id: string | null, label: string, prompt: string, bypassRestrictions: boolean): Promise<void> {
+    const res = await fetch(`${backendUrl}/custom_prompts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, label, prompt, bypassRestrictions })
+    })
+    if (!res.ok) throw new Error('Failed to save custom prompt')
+    await fetchCustomScopes()
+  }
+
+  async function deleteCustomScope(id: string): Promise<void> {
+    const res = await fetch(`${backendUrl}/custom_prompts/${id}`, {
+      method: 'DELETE'
+    })
+    if (!res.ok) throw new Error('Failed to delete custom prompt')
+    await fetchCustomScopes()
+  }
+
+  return {
+    cancelRequest,
+    sendScopedFeedback,
+    sendFollowUpStream,
+    fetchCustomScopes,
+    saveCustomScope,
+    deleteCustomScope,
+    fetchSessions,
+    loadSession,
+    submitRating
+  }
 }

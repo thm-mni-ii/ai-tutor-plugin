@@ -17,10 +17,20 @@ const props = defineProps<{
   notebookTracker: unknown
   username: string
   backendUrl: string
+  isAdmin: boolean
+  insertCode?: (code: string, cellId?: string | null) => void
 }>()
 
-const { messages, isLoading, streamingContent } = useAiTutorStore()
-const { sendScopedFeedback, sendFollowUpStream, cancelRequest } = useBackend(props.backendUrl, props.username)
+const { messages, isLoading, streamingContent, currentSessionId } = useAiTutorStore()
+const { sendScopedFeedback, sendFollowUpStream, cancelRequest, saveCustomScope, deleteCustomScope, fetchCustomScopes, fetchSessions } = useBackend(props.backendUrl, props.username)
+
+// Fetch custom scopes on mount
+import { onMounted } from 'vue'
+onMounted(() => {
+  void fetchCustomScopes()
+  void fetchSessions()
+})
+
 const { getNotebookData } = useNotebook(props.notebookTracker)
 const { t } = useI18n()
 
@@ -32,17 +42,46 @@ const { showScrollButton, autoScrollEnabled, scrollToBottom, handleScroll } = us
 )
 
 function handleScope(scope: FeedbackScope): void {
+  currentSessionId.value = null
   void sendScopedFeedback(scope, getNotebookData())
+}
+
+function handleSaveCustom(id: string | null, label: string, prompt: string, bypassRestrictions: boolean): void {
+  void saveCustomScope(id, label, prompt, bypassRestrictions)
+}
+
+function handleDeleteCustom(id: string): void {
+  if (confirm('Bist du sicher, dass du diesen Button löschen möchtest?')) {
+    void deleteCustomScope(id)
+  }
 }
 
 function handleSubmit(question: string): void {
   void sendFollowUpStream(question, getNotebookData())
 }
+
+function handleRate(rating: number, index: number): void {
+  const { submitRating } = useBackend(props.backendUrl, props.username)
+  void submitRating(`msg-${index}`, rating)
+}
+
+function handleInsertCode(code: string): void {
+  if (props.insertCode) {
+    props.insertCode(code)
+  } else {
+    console.warn("insertCode is not provided")
+  }
+}
 </script>
 
 <template>
   <div class="chat-window">
-    <ScopeSelector @select="handleScope">
+    <ScopeSelector
+      :is-admin="props.isAdmin"
+      @select="handleScope"
+      @save-custom="handleSaveCustom"
+      @delete-custom="handleDeleteCustom"
+    >
       <template #controls>
         <button
           type="button"
@@ -63,7 +102,14 @@ function handleSubmit(question: string): void {
         </p>
 
         <!-- Committed messages (user + fully received assistant) -->
-        <ChatMessage v-for="(message, index) in messages" :key="index" :message="message" />
+        <ChatMessage 
+          v-for="(message, index) in messages" 
+          :key="index" 
+          :message="message" 
+          @submit-follow-up="handleSubmit"
+          @rate="(r) => handleRate(r, index)"
+          @insert-code="handleInsertCode"
+        />
 
         <!-- Live streaming bubble: appears token-by-token while LLM is generating -->
         <ChatMessage

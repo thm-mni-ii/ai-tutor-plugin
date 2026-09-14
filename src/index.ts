@@ -1,4 +1,4 @@
-﻿import {
+import {
     JupyterFrontEnd,
     JupyterFrontEndPlugin
   } from '@jupyterlab/application';
@@ -6,7 +6,7 @@
   import { Widget } from '@lumino/widgets';
   import { LabIcon } from '@jupyterlab/ui-components';
   import { ILayoutRestorer } from '@jupyterlab/application';
-  import { NotebookPanel, INotebookTracker } from '@jupyterlab/notebook';
+  import { NotebookPanel, INotebookTracker, NotebookActions } from '@jupyterlab/notebook';
   import { DocumentRegistry } from '@jupyterlab/docregistry';
   import { IDisposable } from '@lumino/disposable';
   import { ToolbarButton } from '@jupyterlab/apputils';
@@ -216,7 +216,20 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
       this.title.caption = 'AI Tutor Hilfe und Dokumentation';
       const div = document.createElement('div');
       div.style.height = '100%';
-      mountVueWidget(div, { app, notebookTracker, isAdmin, username: getJupyterHubUsername(), backendUrl: BACKEND_URL });
+      
+      const insertCode = (code: string, cellId?: string | null) => {
+        const notebookPanel = this.notebookTracker.currentWidget;
+        if (!notebookPanel) return;
+        
+        // If cellId is given, we could try to find it, but inserting below the active cell is usually fine
+        NotebookActions.insertBelow(notebookPanel.content);
+        const newCell = notebookPanel.content.activeCell;
+        if (newCell) {
+          newCell.model.sharedModel.setSource(code);
+        }
+      };
+
+      mountVueWidget(div, { app, notebookTracker, isAdmin, username: getJupyterHubUsername(), backendUrl: BACKEND_URL, insertCode });
       this.node.appendChild(div);
       this.setupCellTracking(app);
     }

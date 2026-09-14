@@ -4,15 +4,30 @@ import ChatWindow from './components/chat/ChatWindow.vue'
 import ModelSelector from './components/chat/ModelSelector.vue'
 import QueueBadge from './components/chat/QueueBadge.vue'
 
+import { useAiTutorStore } from './useAiTutorStore'
+import { useBackend } from './useBackend'
+
 const props = defineProps<{
   app: unknown
   notebookTracker: unknown
   isAdmin: boolean
   username: string
   backendUrl: string
+  insertCode?: (code: string, cellId?: string | null) => void
 }>()
 
 const { t } = useI18n()
+const { difficulty, sessions, currentSessionId, messages } = useAiTutorStore()
+const { loadSession } = useBackend(props.backendUrl, props.username)
+
+function handleSessionChange(sessionId: string) {
+  if (!sessionId) {
+    currentSessionId.value = null
+    messages.value = []
+  } else {
+    void loadSession(sessionId)
+  }
+}
 </script>
 
 <template>
@@ -23,7 +38,18 @@ const { t } = useI18n()
         <span v-if="isAdmin" class="ai-tutor-panel__admin-badge">{{ t('chat.adminMode') }}</span>
         <QueueBadge />
       </div>
-      <ModelSelector />
+      <div class="ai-tutor-panel__controls">
+        <select v-model="difficulty" class="ai-tutor-panel__select" title="Tutor Difficulty">
+          <option value="normal">Normal</option>
+          <option value="patient">Geduldig</option>
+          <option value="strict">Strikt</option>
+        </select>
+        <select :value="currentSessionId || ''" @change="e => handleSessionChange((e.target as HTMLSelectElement).value)" class="ai-tutor-panel__select" title="Chat Historie">
+          <option value="">Neu...</option>
+          <option v-for="s in sessions" :key="s.id" :value="s.id">{{ new Date(s.updated_at * 1000).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute:'2-digit' }) }} - {{ s.title }}</option>
+        </select>
+        <ModelSelector />
+      </div>
     </header>
 
     <ChatWindow
@@ -31,6 +57,8 @@ const { t } = useI18n()
       :notebook-tracker="notebookTracker"
       :username="props.username"
       :backend-url="props.backendUrl"
+      :is-admin="props.isAdmin"
+      :insert-code="props.insertCode"
     />
   </div>
 </template>
@@ -74,5 +102,20 @@ const { t } = useI18n()
 .ai-tutor-panel__chat {
   flex: 1;
   min-height: 0;
+}
+.ai-tutor-panel__controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ai-tutor-panel__select {
+  padding: 2px 4px;
+  font-size: var(--jp-ui-font-size0, 11px);
+  border: 1px solid var(--jp-border-color2);
+  border-radius: 3px;
+  background: var(--jp-layout-color1);
+  color: var(--jp-ui-font-color1);
+  cursor: pointer;
 }
 </style>

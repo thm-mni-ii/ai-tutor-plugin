@@ -1,3 +1,10 @@
+/* Glow effect for active cells in JupyterLab */
+.jp-Cell.jp-mod-active {
+  box-shadow: 0 0 10px 2px var(--jp-brand-color1);
+  transition: box-shadow 0.2s ease-in-out;
+  border-left-color: var(--jp-brand-color1) !important;
+}
+
 /* Course Manager Widget Styles */
 .jp-CourseManager {
   display: flex;
