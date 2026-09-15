@@ -36,6 +36,13 @@ LLM_MODEL=dein-modell-name
 
 # Authentifizierungs-Token für die LLM-API
 LLM_TOKEN=dein-geheimer-token
+
+# CORS (Cross-Origin Resource Sharing)
+ORIGINS=http://localhost:8888
+
+# Ohne Authentifizierung
+TEST_DEPLOYMENT=true
+
 ```
 
 ---
@@ -51,10 +58,14 @@ docker-compose up --build -d
 ```
 *(Warte, bis das Backend vollständig hochgefahren und erreichbar ist.)*
 
+**Erreichbarkeit:** http://localhost:8000 oder wie in der docker-compose.yml angegeben (Port)
+
 ### 2. Frontend (JupyterLab) starten
 Wechsle in das Verzeichnis des Frontends (`ai-tutor-plugin`) und starte dort die entsprechende Umgebung bzw. den Docker-Container. 
 
 **Erinnerung:** Der erste Start und der Build-Prozess für das JupyterLab-Plugin dauern sehr lange, da viele Abhängigkeiten installiert und das Frontend kompiliert werden muss.
+
+**Erreichbarkeit:** http://localhost:8888 oder wie in der docker-compose.yml angegeben (Port)
 
 ---
 
