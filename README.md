@@ -1,4 +1,71 @@
-# GdDS
+# AI Tutor Project
+
+Dieses Projekt besteht aus einem **Backend** und einem **Frontend** (JupyterLab Plugin) und stellt einen KI-basierten Tutor direkt in der JupyterLab-Umgebung zur Verfügung.
+
+> [!WARNING]
+> **Wichtiger Hinweis zu Build- und Startzeiten:**
+> Bitte beachte, dass sowohl das Builden der Container als auch das Starten von JupyterLab **sehr lange dauern kann**. Habe hier etwas Geduld!
+
+> [!IMPORTANT]
+> **Sicherheitshinweis:**
+> Dies ist ein reines **Testdeployment**. Es ist aktuell **keine Authentifizierung** implementiert! Das System sollte daher nicht ungeschützt öffentlich zugänglich gemacht werden.
+
+---
+
+## Features
+
+- **KI-Chat-Interface:** Direkte Kommunikation mit dem AI Tutor über ein Panel in JupyterLab.
+- **Kontextbezogene Hilfe:** Unterstützung beim Programmieren, Fehlerbehebung und bei konzeptionellen Fragen.
+- **Nahtlose Integration:** Frontend ist als natives JupyterLab-Plugin (mit Vue.js) implementiert.
+- **Flexible LLM-Anbindung:** Anbindung an Large Language Models (LLM) über eine anpassbare Backend-Architektur.
+
+---
+
+## Voraussetzungen und Konfiguration
+
+Vor dem Start muss die Umgebung konfiguriert werden. Nutze dazu die mitgelieferte `.env.example` Datei als Vorlage.
+
+Erstelle eine `.env` Datei im Root-Verzeichnis (bzw. Backend-Verzeichnis) mit folgendem Inhalt (angepasst an deine Umgebung):
+
+```env
+# URL des LLM-Endpunkts
+LLM_URL=https://ki6.mni.thm.de:4443/v1/chat/completions
+
+# Das verwendete LLM-Modell
+LLM_MODEL=dein-modell-name
+
+# Authentifizierungs-Token für die LLM-API
+LLM_TOKEN=dein-geheimer-token
+```
+
+---
+
+## Starten des Projekts mit Docker
+
+Das Projekt wird vollständig über Docker (bzw. Docker Compose) orchestriert. Um einen reibungslosen Ablauf zu gewährleisten, **muss das Backend vor dem Frontend hochgefahren werden.**
+
+### 1. Backend starten
+Wechsle in das Backend-Verzeichnis und starte die Container:
+```bash
+docker-compose up --build -d
+```
+*(Warte, bis das Backend vollständig hochgefahren und erreichbar ist.)*
+
+### 2. Frontend (JupyterLab) starten
+Wechsle in das Verzeichnis des Frontends (`ai-tutor-plugin`) und starte dort die entsprechende Umgebung bzw. den Docker-Container. 
+
+**Erinnerung:** Der erste Start und der Build-Prozess für das JupyterLab-Plugin dauern sehr lange, da viele Abhängigkeiten installiert und das Frontend kompiliert werden muss.
+
+---
+
+## Entwicklung & Fehlerbehebung
+
+- Sollten Fehler im Frontend (JupyterLab) auftreten, stelle sicher, dass das Backend korrekt läuft und die `LLM_URL` sowie das `LLM_TOKEN` in der `.env` Datei richtig gesetzt sind.
+- Logs für das Backend können über `docker-compose logs -f` eingesehen werden.
+
+---
+
+# GdDS (Extension Development Details)
 
 [![Github Actions Status](/workflows/Build/badge.svg)](/actions/workflows/build.yml)
 
