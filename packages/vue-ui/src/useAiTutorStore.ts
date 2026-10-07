@@ -31,6 +31,7 @@ const isLoading = ref(false)
 const activeScope = ref<FeedbackScope | null>(null)
 const currentCellId = ref<string | null>(null)
 const customScopes = ref<CustomScope[]>([])
+const isAdmin = ref(false)
 
 const sessions = ref<Session[]>([])
 const currentSessionId = ref<string | null>(null)
@@ -51,6 +52,6 @@ const selectedModel = ref<string>('unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF/Qwe
 export function useAiTutorStore() {
   return { 
     messages, isLoading, activeScope, currentCellId, streamingContent, 
-    queuePosition, selectedModel, customScopes, sessions, currentSessionId, difficulty 
+    queuePosition, selectedModel, customScopes, sessions, currentSessionId, difficulty, isAdmin 
   }
 }

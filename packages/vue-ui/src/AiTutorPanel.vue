@@ -3,6 +3,8 @@ import { useI18n } from 'vue-i18n'
 import ChatWindow from './components/chat/ChatWindow.vue'
 import ModelSelector from './components/chat/ModelSelector.vue'
 import QueueBadge from './components/chat/QueueBadge.vue'
+import AdminDashboard from './components/chat/AdminDashboard.vue'
+import { ref } from 'vue'
 
 import { useAiTutorStore } from './useAiTutorStore'
 import { useBackend } from './useBackend'
@@ -28,6 +30,8 @@ function handleSessionChange(sessionId: string) {
     void loadSession(sessionId)
   }
 }
+
+const isDashboardOpen = ref(false)
 </script>
 
 <template>
@@ -36,6 +40,7 @@ function handleSessionChange(sessionId: string) {
       <div class="ai-tutor-panel__heading">
         <span class="ai-tutor-panel__title">{{ t('chat.title') }}</span>
         <span v-if="isAdmin" class="ai-tutor-panel__admin-badge">{{ t('chat.adminMode') }}</span>
+        <button v-if="isAdmin" @click="isDashboardOpen = true" class="ai-tutor-panel__dashboard-btn" title="Admin Dashboard">📊</button>
         <QueueBadge />
       </div>
       <div class="ai-tutor-panel__controls">
@@ -60,6 +65,12 @@ function handleSessionChange(sessionId: string) {
       :is-admin="props.isAdmin"
       :insert-code="props.insertCode"
     />
+
+    <AdminDashboard
+      :is-open="isDashboardOpen"
+      :backend-url="props.backendUrl"
+      @close="isDashboardOpen = false"
+    />
   </div>
 </template>
 
@@ -77,6 +88,7 @@ function handleSessionChange(sessionId: string) {
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
+  flex-wrap: wrap;
   gap: 8px;
   padding: 10px 14px;
   border-bottom: 1px solid var(--jp-border-color2);
@@ -99,6 +111,20 @@ function handleSessionChange(sessionId: string) {
   color: var(--jp-warn-color1);
 }
 
+.ai-tutor-panel__dashboard-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+.ai-tutor-panel__dashboard-btn:hover {
+  background: var(--jp-layout-color2);
+  transform: scale(1.1);
+}
+
 .ai-tutor-panel__chat {
   flex: 1;
   min-height: 0;
@@ -106,6 +132,7 @@ function handleSessionChange(sessionId: string) {
 .ai-tutor-panel__controls {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 6px;
 }
 
