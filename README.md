@@ -16,6 +16,10 @@ Dieses Projekt besteht aus einem **Backend** und einem **Frontend** (JupyterLab 
 
 - **KI-Chat-Interface:** Direkte Kommunikation mit dem AI Tutor über ein Panel in JupyterLab.
 - **Kontextbezogene Hilfe:** Unterstützung beim Programmieren, Fehlerbehebung und bei konzeptionellen Fragen.
+- **Custom Prompts & Restriktions-Bypass:** Administratoren können eigene Prompts definieren. Bei aktivierter Einstellung `bypassRestrictions` werden Schwierigkeitsregeln und Sicherheits-Constraints für Lösungsfreigabe überschrieben (z. B. für die Generierung direkter Code-Snippets).
+- **Session-Management & Chat-Historie:** Chats werden in der MongoDB persistiert und können im Plugin über ein übersichtliches Dropdown-Menü inkl. Zeitstempel geladen werden (rollierendes Limit der letzten 5 Sessions).
+- **Bewertungs-System:** Nutzer können KI-Antworten mit Daumen hoch / runter bewerten. Die UI leuchtet bei aktiven Ratings dynamisch auf.
+- **Admin Dashboard:** Ein integriertes Analytics-Dashboard (aufrufbar für Admin-User), das live MongoDB-Auswertungen visualisiert: Gesamte Sessions, eindeutige Nutzer, Rating-Statistiken sowie die Beliebtheit der einzelnen Features/Prompts.
 - **Nahtlose Integration:** Frontend ist als natives JupyterLab-Plugin (mit Vue.js) implementiert.
 - **Flexible LLM-Anbindung:** Anbindung an Large Language Models (LLM) über eine anpassbare Backend-Architektur.
 
