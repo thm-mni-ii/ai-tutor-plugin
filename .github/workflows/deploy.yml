@@ -33,4 +33,6 @@ jobs:
             cd ~
             export XDG_RUNTIME_DIR="/run/user/$(id -u)"
             export DOCKER_HOST="unix://${XDG_RUNTIME_DIR}/docker.sock"
+            docker system prune -f
             docker compose up -d --build
+            docker system prune -f
