@@ -11,6 +11,17 @@ jobs:
     environment: test-deployment
 
     steps:
+      - name: Check SSH Secrets
+        env:
+          SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          test -n "$SSH_KEY" || { echo "SSH_PRIVATE_KEY fehlt"; exit 1; }
+          test -n "$SSH_HOST" || { echo "SSH_HOST fehlt"; exit 1; }
+          test -n "$SSH_USER" || { echo "SSH_USER fehlt"; exit 1; }
+      
+          echo "Alle SSH-Secrets vorhanden"
       - name: SSH Deploy
         uses: appleboy/ssh-action@v1
         with:
@@ -18,4 +29,8 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            DOCKER_HOST=unix://$XDG_RUNTIME_DIR/docker.sock docker compose up -d --build
+            set -e
+            cd ~
+            export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+            export DOCKER_HOST="unix://${XDG_RUNTIME_DIR}/docker.sock"
+            docker compose up -d --build
