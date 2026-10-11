@@ -22,6 +22,16 @@ jobs:
           test -n "$SSH_USER" || { echo "SSH_USER fehlt"; exit 1; }
       
           echo "Alle SSH-Secrets vorhanden"
+      - name: SSH Test
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          version: 1.8.4
+          debug: true
+          script: |
+            whoami
       - name: SSH Deploy
         uses: appleboy/ssh-action@v1
         with:
