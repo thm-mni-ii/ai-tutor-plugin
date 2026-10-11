@@ -24,19 +24,12 @@ jobs:
           echo "All SSH-Secrets present"
       - name: SSH Deploy
         uses: appleboy/ssh-action@v1
-        env:
-          BUILD_SSH_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          envs: BUILD_SSH_KEY
           script: |
             set -e
-            eval "$(ssh-agent -s)"
-            trap 'ssh-agent -k >/dev/null' EXIT
-            printf '%s\n' "$BUILD_SSH_KEY" | tr -d '\r' | ssh-add -
-            unset BUILD_SSH_KEY
             cd ~
             export XDG_RUNTIME_DIR="/run/user/$(id -u)"
             export DOCKER_HOST="unix://${XDG_RUNTIME_DIR}/docker.sock"
