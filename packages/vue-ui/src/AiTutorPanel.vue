@@ -53,7 +53,7 @@ const isDashboardOpen = ref(false)
           <option value="">Neu...</option>
           <option v-for="s in sessions" :key="s.id" :value="s.id">{{ new Date(s.updated_at * 1000).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute:'2-digit' }) }} - {{ s.title }}</option>
         </select>
-        <ModelSelector />
+        <ModelSelector :backend-url="props.backendUrl" />
       </div>
     </header>
 

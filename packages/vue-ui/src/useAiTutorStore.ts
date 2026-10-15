@@ -47,7 +47,7 @@ const queuePosition = ref<number>(0)
 
 // Selected LLM model, sent as `model` on every /prompt/stream request.
 // Falls back to the backend's LLM_MODEL env default when empty.
-const selectedModel = ref<string>('unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF/Qwen3-Coder-30B-A3B-Instruct-Q8_0.gguf')
+const selectedModel = ref<string>('')
 
 export function useAiTutorStore() {
   return { 

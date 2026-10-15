@@ -1,24 +1,34 @@
 <script setup lang="ts">
+import { onMounted, ref } from 'vue'
 import { useAiTutorStore } from '../../useAiTutorStore'
 
-// Real model identifiers as served by the THM LLM gateway (ki6.mni.thm.de).
-// Sent as `model` on /prompt/stream; see useBackend.ts.
-const models = [
-  { value: 'unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF/Qwen3-Coder-30B-A3B-Instruct-Q8_0.gguf', label: 'Qwen3 Coder 30B' },
-  // Gemma 3 27B — disabled for now: its server-side chat template rejects our
-  // requests with "Conversation roles must alternate user/assistant/..." even
-  // for a single user-only turn — looks like a gateway-side template issue,
-  // unrelated to what we send. Re-add once that's sorted out on the THM side.
-  // { value: 'unsloth/gemma-3-27b-it-GGUF/gemma-3-27b-it-Q8_0.gguf', label: 'Gemma 3 27B' },
-]
+const props = defineProps<{ backendUrl: string }>()
+
+const models = ref<string[]>([])
 
 const { selectedModel } = useAiTutorStore()
+
+onMounted(async () => {
+  try {
+    const res = await fetch(`${props.backendUrl}/models`)
+    if (!res.ok) return
+    const data = (await res.json()) as { models?: string[]; default?: string | null }
+    models.value = data.models ?? []
+    if (!models.value.includes(selectedModel.value)) {
+      selectedModel.value = data.default ?? ''
+    }
+  } catch {
+    models.value = []
+  }
+})
+
+const label = (id: string) => id.split('/').pop() ?? id
 </script>
 
 <template>
-  <select v-model="selectedModel" class="model-selector">
-    <option v-for="model in models" :key="model.value" :value="model.value">
-      {{ model.label }}
+  <select v-if="models.length > 1" v-model="selectedModel" class="model-selector">
+    <option v-for="model in models" :key="model" :value="model">
+      {{ label(model) }}
     </option>
   </select>
 </template>

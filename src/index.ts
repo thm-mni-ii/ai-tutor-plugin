@@ -61,7 +61,7 @@ import {
   async function loadTaskFiles(): Promise<folder[]> {
     try {
       const contentsManager = new ContentsManager();
-      const tasksDir = 'Ãœbungsaufgaben/Grundlagen der Data Science';
+      const tasksDir = 'Übungsaufgaben/Grundlagen der Data Science';
       
       let folders: folder[] = []
       try {
@@ -93,7 +93,7 @@ import {
 
 async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<void> {
   const contentsManager = new ContentsManager();
-  const tasksDir = "Ãœbungsaufgaben";
+  const tasksDir = "Übungsaufgaben";
   // Hilfsfunktion: rekursiv sicherstellen, dass ein Ordner existiert
   async function ensureDirectory(path: string): Promise<void> {
     const parts = path.split("/");
@@ -363,7 +363,7 @@ async function saveMissingFiles(missingFiles: MissingFilesResponse): Promise<voi
             }
           } catch (networkError: any) {
             if (networkError.name === 'AbortError') {
-              console.error('Anfragezeit Ã¼berschritten beim Laden der Dateien');
+              console.error('Anfragezeit überschritten beim Laden der Dateien');
             } else {
               console.error('Netzwerkfehler beim Laden der Dateien:', networkError.message);
             }
